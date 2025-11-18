@@ -1,5 +1,5 @@
 ---
-{"dg-publish":true,"permalink":"/index/","tags":["gardenEntry"],"noteIcon":""}
+{"dg-publish":true,"permalink":"/index/","tags":["gardenEntry"]}
 ---
 
 > [!question] Кто я?
