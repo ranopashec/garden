@@ -1,0 +1,27 @@
+<div class="user-info" id="user-info" style="display: none;">
+  <span class="user-username"></span>
+</div>
+
+<script>
+(function() {
+  if (window.Telegram?.WebApp) {
+    const tg = window.Telegram.WebApp;
+    const userInfo = document.getElementById('user-info');
+    const usernameEl = userInfo.querySelector('.user-username');
+    
+    // Получаем username пользователя из initDataUnsafe
+    const user = tg.initDataUnsafe?.user;
+    
+    if (user) {
+      // Используем username или first_name, если username нет
+      const displayName = user.username 
+        ? `@${user.username}` 
+        : (user.first_name || 'Пользователь');
+      
+      usernameEl.textContent = displayName;
+      userInfo.style.display = 'flex';
+    }
+  }
+})();
+</script>
+
