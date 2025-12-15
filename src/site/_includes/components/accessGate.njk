@@ -49,23 +49,38 @@
       }
       return res.json();
     })
+    .then(res => {
+      if (!res.ok) {
+        // Если статус не OK, пробуем получить JSON с ошибкой
+        return res.json().then(data => {
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }).catch(() => {
+          throw new Error(`HTTP ${res.status}`);
+        });
+      }
+      return res.json();
+    })
     .then(data => {
+      console.log('accessGate: Access check result:', data);
+      
       const checkingEl = accessGate.querySelector('.access-checking');
       const deniedEl = accessGate.querySelector('.access-denied');
       const contentEl = accessGate.querySelector('.article-content');
       
-      if (data.hasAccess) {
+      if (data.hasAccess === true) {
+        console.log('accessGate: Access granted');
         checkingEl.style.display = 'none';
         deniedEl.style.display = 'none';
         contentEl.style.display = 'block';
       } else {
+        console.log('accessGate: Access denied');
         checkingEl.style.display = 'none';
         deniedEl.style.display = 'block';
         contentEl.style.display = 'none';
       }
     })
     .catch(error => {
-      console.error('Error checking access:', error);
+      console.error('accessGate: Error checking access:', error);
       const checkingEl = accessGate.querySelector('.access-checking');
       const deniedEl = accessGate.querySelector('.access-denied');
       

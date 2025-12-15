@@ -41,11 +41,15 @@ async function handler(req, res) {
     // Проверка группы (используем глобальный PRIVATE_GROUP_ID)
     const groupId = process.env.PRIVATE_GROUP_ID;
     if (!groupId) {
-      console.error('PRIVATE_GROUP_ID not set');
+      console.error('check-access: PRIVATE_GROUP_ID not set');
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
+    console.log(`check-access: Checking access for user ${userId} in group ${groupId}`);
+
     const hasAccess = await checkUserInGroup(userId, groupId);
+
+    console.log(`check-access: Access result for user ${userId}: ${hasAccess}`);
 
     return res.status(200).json({ 
       hasAccess,
