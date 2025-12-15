@@ -1,6 +1,8 @@
 <div class="share-button-container">
-  <button class="share-button" onclick="shareArticle()" title="Поделиться" data-article-url="{{ page.url }}">
-    <span class="share-icon">✈️</span>
+  <button class="share-button" onclick="shareArticle()" title="Поделиться" data-share-param="{{ shareParam }}">
+    <svg class="share-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M21.5 2L2.5 11L10.5 13.5L18.5 8L12.5 14.5L21.5 22L21.5 2Z" fill="currentColor" stroke="currentColor" stroke-width="0.5"/>
+    </svg>
   </button>
 </div>
 
@@ -9,9 +11,9 @@ function shareArticle() {
   if (window.Telegram?.WebApp) {
     const tg = window.Telegram.WebApp;
     
-    // Получаем permalink из data-атрибута кнопки или используем текущий путь
+    // Получаем shareParam из data-атрибута кнопки
     const button = event?.target?.closest('.share-button') || document.querySelector('.share-button');
-    const articleUrl = button?.dataset?.articleUrl || window.location.pathname;
+    const shareParam = button?.dataset?.shareParam || 'index';
     
     // Получаем bot username из initData
     const botUsername = tg.initDataUnsafe?.bot?.username;
@@ -26,17 +28,8 @@ function shareArticle() {
       return;
     }
     
-    // Кодируем путь статьи как start_param
-    // Убираем все слэши и используем чистый путь
-    let startParam = articleUrl.replace(/^\/+|\/+$/g, '');
-    
-    // Если это главная страница, используем "index"
-    if (!startParam || startParam === '') {
-      startParam = 'index';
-    }
-    
-    // Убираем "notes/" из начала пути, если есть
-    startParam = startParam.replace(/^notes\//, '');
+    // Используем shareParam напрямую (уже без слэшей)
+    const startParam = shareParam;
     
     // Создаём ссылку для открытия статьи в мини-приложении
     // Формат: https://t.me/botusername/appname?startapp=article_path

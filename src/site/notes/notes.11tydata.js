@@ -22,5 +22,15 @@ module.exports = {
       // По умолчанию "public", если не указано
       return data.access || "public";
     },
+    shareParam: (data) => {
+      // Чистый permalink для шаринга (без слэшей)
+      if (data.index === true) {
+        return "index";
+      }
+      if (data.permalink) {
+        return data.permalink.replace(/^\/+|\/+$/g, '');
+      }
+      return data.page.fileSlug;
+    },
   },
 };
