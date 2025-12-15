@@ -19,106 +19,208 @@
 <script>
 (function() {
   let accessGranted = false;
+  let checkInterval = null;
+  
+  function grantAccess() {
+    if (accessGranted) return;
+    
+    accessGranted = true;
+    const telegramGate = document.getElementById('telegram-gate');
+    const mainContent = document.querySelector('main.content');
+    const userInfo = document.getElementById('user-info');
+    
+    if (telegramGate) {
+      telegramGate.style.display = 'none';
+    }
+    if (mainContent) {
+      mainContent.style.display = 'block';
+    }
+    if (userInfo) {
+      userInfo.style.display = 'flex';
+    }
+    
+    // Останавливаем интервал проверки
+    if (checkInterval) {
+      clearInterval(checkInterval);
+      checkInterval = null;
+    }
+    
+    console.log('TelegramGate: ✅ Access granted - Telegram WebApp available');
+  }
+  
+  function denyAccess() {
+    if (accessGranted) return;
+    
+    const telegramGate = document.getElementById('telegram-gate');
+    const mainContent = document.querySelector('main.content');
+    const userInfo = document.getElementById('user-info');
+    
+    if (telegramGate) {
+      telegramGate.style.display = 'block';
+    }
+    if (mainContent) {
+      mainContent.style.display = 'none';
+    }
+    if (userInfo) {
+      userInfo.style.display = 'none';
+    }
+    
+    console.warn('TelegramGate: ❌ Access denied - Telegram WebApp not available');
+  }
   
   function checkTelegramAccess() {
     // Проверяем наличие Telegram WebApp
     const hasTelegram = !!window.Telegram?.WebApp;
-    
-    // Также проверяем наличие самого объекта Telegram (может быть загружен, но WebApp ещё нет)
     const hasTelegramObject = !!window.Telegram;
     
+    // Дополнительные проверки: находимся ли мы в iframe (Telegram открывает Mini Apps в iframe)
+    const isInIframe = window.self !== window.top;
+    
+    // Проверяем наличие скрипта Telegram в DOM
+    const telegramScript = document.querySelector('script[src*="telegram-web-app"]');
+    
     console.log('TelegramGate: Checking access');
-    console.log('TelegramGate: window.Telegram exists?', hasTelegramObject);
-    console.log('TelegramGate: window.Telegram.WebApp exists?', hasTelegram);
+    console.log('  - window.Telegram exists?', hasTelegramObject);
+    console.log('  - window.Telegram.WebApp exists?', hasTelegram);
+    console.log('  - isInIframe?', isInIframe);
+    console.log('  - telegramScript in DOM?', !!telegramScript);
     
     if (hasTelegram) {
-      // Telegram WebApp доступен - разрешаем доступ
-      accessGranted = true;
-      const telegramGate = document.getElementById('telegram-gate');
-      const mainContent = document.querySelector('main.content');
-      
-      if (telegramGate) {
-        telegramGate.style.display = 'none';
-      }
-      if (mainContent) {
-        mainContent.style.display = 'block';
-      }
-      
-      console.log('TelegramGate: ✅ Access granted - Telegram WebApp available');
+      grantAccess();
       return true;
-    } else if (hasTelegramObject) {
-      // Telegram объект есть, но WebApp ещё не загружен - ждём
-      console.log('TelegramGate: ⏳ Telegram object exists, waiting for WebApp...');
-      return false;
-    } else {
-      // Telegram не найден - блокируем доступ
-      if (!accessGranted) {
-        const telegramGate = document.getElementById('telegram-gate');
-        const mainContent = document.querySelector('main.content');
-        const userInfo = document.getElementById('user-info');
-        
-        if (telegramGate) {
-          telegramGate.style.display = 'block';
-        }
-        if (mainContent) {
-          mainContent.style.display = 'none';
-        }
-        if (userInfo) {
-          userInfo.style.display = 'none';
-        }
-        
-        console.warn('TelegramGate: ❌ Access denied - Telegram WebApp not available');
-      }
+    }
+    
+    // Если мы в iframe и есть объект Telegram, но WebApp ещё не загружен - ждём
+    if (isInIframe && hasTelegramObject) {
+      console.log('TelegramGate: ⏳ In iframe with Telegram object, waiting for WebApp...');
       return false;
     }
+    
+    // Если скрипт Telegram найден в DOM, но WebApp ещё не доступен - ждём
+    if (telegramScript && !hasTelegram) {
+      console.log('TelegramGate: ⏳ Telegram script found, waiting for WebApp...');
+      return false;
+    }
+    
+    // Если мы в iframe, но Telegram не найден - возможно, он ещё загружается
+    if (isInIframe && !hasTelegramObject) {
+      console.log('TelegramGate: ⏳ In iframe but Telegram not found yet, waiting...');
+      return false;
+    }
+    
+    // Если ничего не найдено и мы не в iframe - блокируем
+    if (!isInIframe && !hasTelegramObject) {
+      denyAccess();
+      return false;
+    }
+    
+    return false;
   }
   
-  // Функция инициализации с множественными попытками
-  function initTelegramGate() {
-    // Первая проверка сразу
-    if (checkTelegramAccess()) {
-      return; // Доступ получен, выходим
-    }
+  // Используем MutationObserver для отслеживания появления window.Telegram
+  function setupTelegramObserver() {
+    let observerCount = 0;
+    const maxObservations = 100; // Максимум 10 секунд (100 * 100ms)
     
-    // Если не получили доступ, пробуем ещё несколько раз с увеличивающимися задержками
-    const delays = [100, 300, 500, 1000, 2000, 3000];
-    
-    delays.forEach((delay, index) => {
-      setTimeout(() => {
+    const observer = new MutationObserver(() => {
+      observerCount++;
+      if (window.Telegram?.WebApp) {
+        console.log('TelegramGate: MutationObserver detected Telegram WebApp');
+        grantAccess();
+        observer.disconnect();
+      } else if (observerCount >= maxObservations) {
+        console.warn('TelegramGate: MutationObserver timeout');
+        observer.disconnect();
         if (!accessGranted) {
-          console.log(`TelegramGate: Attempt ${index + 2} after ${delay}ms`);
-          if (checkTelegramAccess()) {
-            accessGranted = true;
-          }
+          denyAccess();
         }
-      }, delay);
+      }
     });
     
-    // Финальная проверка через 5 секунд
+    // Наблюдаем за изменениями в document
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['src']
+    });
+    
+    // Останавливаем через 10 секунд
     setTimeout(() => {
-      if (!accessGranted) {
-        console.warn('TelegramGate: Final check after 5 seconds');
-        checkTelegramAccess();
-      }
-    }, 5000);
+      observer.disconnect();
+    }, 10000);
   }
   
-  // Инициализация при загрузке
+  // Функция инициализации
+  function initTelegramGate() {
+    console.log('TelegramGate: Initializing...');
+    
+    // Первая проверка сразу
+    if (checkTelegramAccess()) {
+      return;
+    }
+    
+    // Настраиваем MutationObserver
+    setupTelegramObserver();
+    
+    // Проверяем каждые 100ms в течение 10 секунд
+    let attempts = 0;
+    const maxAttempts = 100; // 10 секунд
+    
+    checkInterval = setInterval(() => {
+      attempts++;
+      if (accessGranted) {
+        clearInterval(checkInterval);
+        checkInterval = null;
+        return;
+      }
+      
+      if (checkTelegramAccess()) {
+        clearInterval(checkInterval);
+        checkInterval = null;
+        return;
+      }
+      
+      if (attempts >= maxAttempts) {
+        clearInterval(checkInterval);
+        checkInterval = null;
+        console.warn('TelegramGate: Max attempts reached');
+        if (!accessGranted) {
+          denyAccess();
+        }
+      }
+    }, 100);
+    
+    // Финальная проверка через 10 секунд
+    setTimeout(() => {
+      if (!accessGranted) {
+        console.warn('TelegramGate: Final check after 10 seconds');
+        if (checkTelegramAccess()) {
+          grantAccess();
+        } else {
+          denyAccess();
+        }
+      }
+    }, 10000);
+  }
+  
+  // Инициализация
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initTelegramGate);
   } else {
-    // Если DOM уже загружен, запускаем сразу
     initTelegramGate();
   }
   
-  // Также слушаем событие загрузки скрипта Telegram (если оно есть)
+  // Также проверяем после полной загрузки страницы
   window.addEventListener('load', () => {
     setTimeout(() => {
       if (!accessGranted) {
         console.log('TelegramGate: Checking after window.load event');
-        checkTelegramAccess();
+        if (checkTelegramAccess()) {
+          grantAccess();
+        }
       }
-    }, 100);
+    }, 500);
   });
 })();
 </script>
