@@ -1,4 +1,4 @@
-const { transliterate } = require('../../src/helpers/translit');
+const { transliterate } = require('../../helpers/translit');
 
 module.exports = {
   eleventyComputed: {
