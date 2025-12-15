@@ -40,10 +40,28 @@ async function handler(req, res) {
     
     if (!username) {
       console.log('check-access: Username not found in initData');
+      
+      // Пробуем прочитать список разрешенных для отображения
+      let acceptedUsernames = [];
+      try {
+        const acceptedFilePath = path.join(process.cwd(), 'src', 'site', 'notes', 'accepted.md');
+        const acceptedContent = fs.readFileSync(acceptedFilePath, 'utf8');
+        acceptedUsernames = acceptedContent
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line && !line.startsWith('#'))
+          .map(line => line.replace(/^@/, '').toLowerCase());
+      } catch (e) {
+        // Игнорируем ошибку чтения файла
+      }
+      
       return res.status(200).json({ 
         hasAccess: false,
         username: null,
-        debug: 'Username not found in Telegram profile'
+        debug: {
+          error: 'Username not found in Telegram profile',
+          acceptedUsernames: acceptedUsernames
+        }
       });
     }
 
