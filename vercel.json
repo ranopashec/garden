@@ -3,8 +3,14 @@
     "installCommand": "npm install",
     "buildCommand": "npm run build",
     "devCommand": "npm run start",
+    "functions": {
+        "api/check-access/index.js": {
+            "runtime": "nodejs22.x"
+        }
+    },
     "routes": [
         { "handle": "filesystem" },
+        { "src": "/api/(.*)", "dest": "/api/$1" },
         { "src": "/(.*)", "status": 404, "dest": "/404" }
-      ]
+    ]
 }

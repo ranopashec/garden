@@ -1,0 +1,57 @@
+<script>
+(function() {
+  if (window.Telegram?.WebApp) {
+    const tg = window.Telegram.WebApp;
+    
+    // Инициализация Telegram WebApp
+    tg.ready();
+    tg.expand();
+    
+    // Защита от копирования через Telegram API
+    tg.disableSelection();
+    
+    // Подтверждение закрытия
+    tg.enableClosingConfirmation();
+    
+    // Дополнительная защита через JavaScript
+    document.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      return false;
+    });
+    
+    document.addEventListener('copy', (e) => {
+      e.preventDefault();
+      return false;
+    });
+    
+    document.addEventListener('selectstart', (e) => {
+      e.preventDefault();
+      return false;
+    });
+    
+    document.addEventListener('dragstart', (e) => {
+      e.preventDefault();
+      return false;
+    });
+    
+    // Запрет масштабирования жестами (двойной тап)
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        e.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
+    
+    // Запрет масштабирования через клавиатуру
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+        e.preventDefault();
+        return false;
+      }
+    });
+  }
+})();
+</script>
+

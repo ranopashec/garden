@@ -1,5 +1,6 @@
 ---
-{"dg-publish":true,"permalink":"/index/","tags":["gardenEntry"]}
+index: true
+access: "public"
 ---
 
 > [!question] Кто я?

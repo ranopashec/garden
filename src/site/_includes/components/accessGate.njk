@@ -1,0 +1,85 @@
+{% if access == "private" %}
+  <div class="access-gate" data-article-path="{{ page.url }}">
+    <div class="access-checking">
+      <div class="access-spinner"></div>
+      <p>Проверка доступа...</p>
+    </div>
+    <div class="access-denied" style="display: none;">
+      <div class="access-denied-icon">🔒</div>
+      <h2>Доступ ограничен</h2>
+      <p>Эта статья доступна только участникам закрытого сообщества</p>
+    </div>
+    <div class="article-content" style="display: none;">
+      {{ content | hideDataview | link | safe }}
+      {%include "components/shareButton.njk"%}
+    </div>
+  </div>
+{% else %}
+  {{ content | hideDataview | link | safe }}
+  {%include "components/shareButton.njk"%}
+{% endif %}
+
+<script>
+(function() {
+  const accessGate = document.querySelector('.access-gate');
+  if (!accessGate) return;
+  
+  if (window.Telegram?.WebApp) {
+    const tg = window.Telegram.WebApp;
+    const initData = tg.initData;
+    
+    if (!initData) {
+      // Если нет initData, показываем сообщение об ошибке
+      accessGate.querySelector('.access-checking').style.display = 'none';
+      accessGate.querySelector('.access-denied').style.display = 'block';
+      return;
+    }
+    
+    // Запрос к API для проверки доступа
+    fetch('/api/check-access', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json' 
+      },
+      body: JSON.stringify({ initData })
+    })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return res.json();
+    })
+    .then(data => {
+      const checkingEl = accessGate.querySelector('.access-checking');
+      const deniedEl = accessGate.querySelector('.access-denied');
+      const contentEl = accessGate.querySelector('.article-content');
+      
+      if (data.hasAccess) {
+        checkingEl.style.display = 'none';
+        deniedEl.style.display = 'none';
+        contentEl.style.display = 'block';
+      } else {
+        checkingEl.style.display = 'none';
+        deniedEl.style.display = 'block';
+        contentEl.style.display = 'none';
+      }
+    })
+    .catch(error => {
+      console.error('Error checking access:', error);
+      const checkingEl = accessGate.querySelector('.access-checking');
+      const deniedEl = accessGate.querySelector('.access-denied');
+      
+      checkingEl.style.display = 'none';
+      deniedEl.style.display = 'block';
+    });
+  } else {
+    // Если не в Telegram, показываем сообщение
+    const checkingEl = accessGate.querySelector('.access-checking');
+    const deniedEl = accessGate.querySelector('.access-denied');
+    
+    checkingEl.style.display = 'none';
+    deniedEl.style.display = 'block';
+  }
+})();
+</script>
+

@@ -1,33 +1,26 @@
-require("dotenv").config();
-const settings = require("../../helpers/constants");
-
-const allSettings = settings.ALL_NOTE_SETTINGS;
-
 module.exports = {
   eleventyComputed: {
-    layout: (data) => {
-      if (data.tags.indexOf("gardenEntry") != -1) {
-        return "layouts/index.njk";
-      }
-      return "layouts/note.njk";
-    },
+    layout: () => "layouts/index.njk",
     permalink: (data) => {
-      if (data.tags.indexOf("gardenEntry") != -1) {
+      // Если это главная страница
+      if (data.index === true) {
         return "/";
       }
-      return data.permalink || undefined;
+      
+      // Если указан permalink в frontmatter (без слэшей)
+      if (data.permalink) {
+        // Убираем слэши в начале и конце, затем добавляем их программно
+        let cleanPermalink = data.permalink.replace(/^\/+|\/+$/g, '');
+        return `/${cleanPermalink}/`;
+      }
+      
+      // По умолчанию используем fileSlug
+      return `/notes/${data.page.fileSlug}/`;
     },
-    settings: (data) => {
-      const noteSettings = {};
-      allSettings.forEach((setting) => {
-        let noteSetting = data[setting];
-        let globalSetting = process.env[setting];
-
-        let settingValue =
-          noteSetting || (globalSetting === "true" && noteSetting !== false);
-        noteSettings[setting] = settingValue;
-      });
-      return noteSettings;
+    access: (data) => {
+      // Обрабатываем access из frontmatter
+      // По умолчанию "public", если не указано
+      return data.access || "public";
     },
   },
 };

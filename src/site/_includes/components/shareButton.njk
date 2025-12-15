@@ -1,0 +1,100 @@
+<div class="share-button-container">
+  <button class="share-button" onclick="shareArticle()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+      <polyline points="16 6 12 2 8 6"></polyline>
+      <line x1="12" y1="2" x2="12" y2="15"></line>
+    </svg>
+    <span>Поделиться</span>
+  </button>
+</div>
+
+<script>
+function shareArticle() {
+  if (window.Telegram?.WebApp) {
+    const tg = window.Telegram.WebApp;
+    const articlePath = window.location.pathname;
+    
+    // Получаем bot username из initData
+    // Формат ссылки: https://t.me/YourBot/YourApp?startapp=article_path
+    const botUsername = tg.initDataUnsafe?.bot?.username;
+    
+    if (!botUsername) {
+      // Если нет bot username, используем обычный шаринг
+      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent('Читай статью: ' + document.title)}`;
+      tg.openLink(shareUrl);
+      return;
+    }
+    
+    // Кодируем путь статьи как start_param
+    // Убираем все слэши и используем чистый путь
+    let startParam = articlePath.replace(/^\/+|\/+$/g, '');
+    
+    // Если это главная страница, используем "index"
+    if (!startParam || startParam === '') {
+      startParam = 'index';
+    }
+    
+    // Убираем "notes/" из начала пути, если есть
+    startParam = startParam.replace(/^notes\//, '');
+    
+    // Создаём ссылку для открытия статьи в мини-приложении
+    // Формат: https://t.me/botusername/appname?startapp=article_path
+    // appname обычно совпадает с botusername или задаётся при создании мини-приложения
+    const appName = botUsername; // Можно изменить если app name отличается
+    const miniAppUrl = `https://t.me/${botUsername}/${appName}?startapp=${encodeURIComponent(startParam)}`;
+    
+    // Используем Telegram WebApp API для шаринга
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(miniAppUrl)}&text=${encodeURIComponent('Читай статью: ' + document.title)}`;
+    
+    tg.openLink(shareUrl);
+  } else {
+    // Если не в Telegram, используем Web Share API
+    if (navigator.share) {
+      navigator.share({
+        title: document.title,
+        url: window.location.href
+      }).catch(err => console.log('Error sharing', err));
+    } else {
+      // Fallback - копирование в буфер
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+          alert('Ссылка скопирована в буфер обмена!');
+        });
+      } else {
+        alert('Ссылка: ' + window.location.href);
+      }
+    }
+  }
+}
+
+// Обработка start_param при загрузке страницы
+(function() {
+  if (window.Telegram?.WebApp) {
+    const tg = window.Telegram.WebApp;
+    const startParam = tg.initDataUnsafe?.start_param;
+    
+    if (startParam) {
+      // Если есть start_param, перенаправляем на соответствующую статью
+      // start_param в формате "article_path" (без слэшей)
+      let targetPath = decodeURIComponent(startParam);
+      
+      // Если это "index", перенаправляем на главную
+      if (targetPath === 'index') {
+        targetPath = '/';
+      } else {
+        // Формируем путь: /permalink/
+        // Убираем возможные слэши и добавляем их программно
+        targetPath = targetPath.replace(/^\/+|\/+$/g, '');
+        targetPath = `/${targetPath}/`;
+      }
+      
+      // Перенаправляем только если путь отличается от текущего
+      if (targetPath !== window.location.pathname) {
+        window.location.href = targetPath;
+      }
+    }
+  }
+})();
+</script>
+
