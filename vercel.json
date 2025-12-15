@@ -5,7 +5,7 @@
     "devCommand": "npm run start",
     "functions": {
         "api/check-access/index.js": {
-            "runtime": "nodejs22.x"
+            "runtime": "@vercel/node@3.0.7"
         }
     },
     "routes": [
