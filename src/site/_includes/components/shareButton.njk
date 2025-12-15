@@ -107,10 +107,12 @@
     
     // Создаём ссылку для мини-приложения
     // Формат: https://t.me/botusername/appname?startapp=shareParam
-    const appName = botUsername; // Обычно совпадает с username
+    // appname обычно совпадает с username бота
+    const appName = botUsername;
     const miniAppUrl = `https://t.me/${botUsername}/${appName}?startapp=${encodeURIComponent(shareParam)}`;
     
     console.log('ShareButton: Generated miniAppUrl:', miniAppUrl);
+    console.log('ShareButton: shareParam (decoded):', decodeURIComponent(encodeURIComponent(shareParam)));
     
     // Копируем в буфер обмена
     if (navigator.clipboard) {
