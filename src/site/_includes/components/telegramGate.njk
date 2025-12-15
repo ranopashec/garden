@@ -20,6 +20,7 @@
 (function() {
   let accessGranted = false;
   let checkInterval = null;
+  let finalCheckTimeout = null;
   
   function grantAccess() {
     if (accessGranted) return;
@@ -42,6 +43,10 @@
     if (checkInterval) {
       clearInterval(checkInterval);
       checkInterval = null;
+    }
+    if (finalCheckTimeout) {
+      clearTimeout(finalCheckTimeout);
+      finalCheckTimeout = null;
     }
     
     console.log('TelegramGate: ✅ Access granted - Telegram WebApp available');
@@ -68,15 +73,44 @@
       clearInterval(checkInterval);
       checkInterval = null;
     }
+    if (finalCheckTimeout) {
+      clearTimeout(finalCheckTimeout);
+      finalCheckTimeout = null;
+    }
     
     console.warn('TelegramGate: ❌ Access denied - Telegram WebApp not available');
   }
   
   function checkTelegramAccess() {
+    // Строгая проверка: должен существовать window.Telegram.WebApp
+    // и у него должны быть методы ready, expand и другие
     const tg = window.Telegram?.WebApp;
-    const hasTelegram = !!tg && typeof tg.ready === 'function';
     
-    if (hasTelegram) {
+    if (!tg) {
+      return false;
+    }
+    
+    // Проверяем, что это действительно Telegram WebApp объект
+    // Должны быть основные методы и свойства
+    const hasRequiredMethods = typeof tg.ready === 'function' && 
+                                typeof tg.expand === 'function' &&
+                                typeof tg.initDataUnsafe !== 'undefined';
+    
+    if (hasRequiredMethods) {
+      // Дополнительная проверка: если мы не в iframe, но есть Telegram WebApp,
+      // это может быть подделка - проверяем initData
+      const isInIframe = window.self !== window.top;
+      if (!isInIframe && tg.initDataUnsafe) {
+        // Если не в iframe, но есть initData - возможно это тестовая среда
+        // Разрешаем доступ только если есть реальные данные пользователя
+        const hasUserData = tg.initDataUnsafe.user && 
+                           (tg.initDataUnsafe.user.id || tg.initDataUnsafe.user.username);
+        if (!hasUserData) {
+          console.warn('TelegramGate: WebApp found but no user data, might be fake');
+          return false;
+        }
+      }
+      
       grantAccess();
       return true;
     }
@@ -100,7 +134,7 @@
     // Определяем таймаут в зависимости от того, в iframe мы или нет
     // В iframe (Telegram) даём больше времени на загрузку
     // Вне iframe (обычный браузер) блокируем быстрее
-    const timeout = isInIframe ? 10000 : 3000; // 10 сек для iframe, 3 сек для обычного браузера
+    const timeout = isInIframe ? 10000 : 2000; // 10 сек для iframe, 2 сек для обычного браузера
     const checkIntervalMs = 100;
     const maxChecks = Math.floor(timeout / checkIntervalMs);
     let checkCount = 0;
@@ -132,13 +166,15 @@
       }
     }, checkIntervalMs);
     
-    // Финальная проверка через таймаут
-    setTimeout(() => {
+    // Финальная проверка через таймаут - ГАРАНТИРОВАННО блокируем, если не найден
+    finalCheckTimeout = setTimeout(() => {
       if (!accessGranted) {
         console.warn(`TelegramGate: Final check after ${timeout}ms`);
         if (checkTelegramAccess()) {
           grantAccess();
         } else {
+          // ГАРАНТИРОВАННАЯ блокировка
+          console.error('TelegramGate: Telegram WebApp not found, BLOCKING ACCESS');
           denyAccess();
         }
       }
@@ -152,14 +188,14 @@
     initTelegramGate();
   }
   
-  // Также проверяем после полной загрузки страницы
+  // Также проверяем после полной загрузки страницы, но НЕ разрешаем доступ автоматически
   window.addEventListener('load', () => {
     setTimeout(() => {
       if (!accessGranted) {
         console.log('TelegramGate: Checking after window.load event');
-        if (checkTelegramAccess()) {
-          grantAccess();
-        }
+        // Только проверяем, но не разрешаем доступ автоматически
+        // Если Telegram не найден, denyAccess уже был вызван
+        checkTelegramAccess();
       }
     }, 500);
   });
