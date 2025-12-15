@@ -35,7 +35,8 @@
     console.log('ShareButton: botUsername from data-attribute:', botUsername);
     
     if (botUsername) {
-      return botUsername;
+      // Очищаем от пробелов и переносов строк
+      return botUsername.trim().replace(/[\s\n\r]+/g, '');
     }
     
     // Если есть Telegram WebApp, пробуем оттуда
@@ -107,27 +108,34 @@
     
     // Создаём ссылку для мини-приложения
     // Формат: https://t.me/botusername?startapp=shareParam
-    // Или: https://t.me/botusername/app?startapp=shareParam (если нужно указать app)
-    // Очищаем shareParam от лишних пробелов и символов
-    const cleanShareParam = shareParam.trim().replace(/\s+/g, '');
-    const miniAppUrl = `https://t.me/${botUsername}?startapp=${encodeURIComponent(cleanShareParam)}`;
+    // Очищаем все параметры от лишних символов, пробелов и переносов строк
+    const cleanBotUsername = botUsername.trim().replace(/[\s\n\r]+/g, '');
+    const cleanShareParam = shareParam.trim().replace(/[\s\n\r]+/g, '');
     
-    console.log('ShareButton: Generated miniAppUrl:', miniAppUrl);
+    // Формируем ссылку как одну строку без переносов
+    const miniAppUrl = `https://t.me/${cleanBotUsername}?startapp=${encodeURIComponent(cleanShareParam)}`;
+    
+    // Проверяем, что ссылка не содержит переносов строк
+    const urlWithoutNewlines = miniAppUrl.replace(/[\n\r]/g, '');
+    
+    console.log('ShareButton: Generated miniAppUrl:', urlWithoutNewlines);
     console.log('ShareButton: shareParam (original):', shareParam);
     console.log('ShareButton: shareParam (cleaned):', cleanShareParam);
     console.log('ShareButton: shareParam (encoded):', encodeURIComponent(cleanShareParam));
+    console.log('ShareButton: URL length:', urlWithoutNewlines.length);
+    console.log('ShareButton: URL contains newlines?', urlWithoutNewlines !== miniAppUrl);
     
-    // Копируем в буфер обмена
+    // Копируем в буфер обмена (гарантируем отсутствие переносов)
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(miniAppUrl).then(() => {
+      navigator.clipboard.writeText(urlWithoutNewlines).then(() => {
         console.log('ShareButton: URL copied to clipboard');
         tg.showAlert('Ссылка скопирована! Теперь вы можете поделиться ею.');
       }).catch((err) => {
         console.error('ShareButton: Clipboard error:', err);
-        tg.showAlert('Ссылка: ' + miniAppUrl);
+        tg.showAlert('Ссылка: ' + urlWithoutNewlines);
       });
     } else {
-      tg.showAlert('Ссылка: ' + miniAppUrl);
+      tg.showAlert('Ссылка: ' + urlWithoutNewlines);
     }
   }
   
