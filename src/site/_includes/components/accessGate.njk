@@ -68,6 +68,16 @@
         contentEl.style.display = 'block';
       } else {
         console.log('accessGate: Access denied');
+        console.log('accessGate: Debug info:', data.debug);
+        
+        // Показываем детальную информацию об отказе
+        if (data.debug) {
+          const deniedText = deniedEl.querySelector('p');
+          if (deniedText && data.debug.requestedUsername) {
+            deniedText.innerHTML = `Ваш username: <strong>@${data.debug.requestedUsername}</strong><br>Разрешенные: ${data.debug.acceptedUsernames.map(u => '@' + u).join(', ')}`;
+          }
+        }
+        
         checkingEl.style.display = 'none';
         deniedEl.style.display = 'block';
         contentEl.style.display = 'none';
