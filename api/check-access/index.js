@@ -1,6 +1,4 @@
 const { validateInitData, extractUsername } = require('../../lib/telegram');
-const fs = require('fs');
-const path = require('path');
 
 async function handler(req, res) {
   // Разрешаем CORS для Telegram WebApp
@@ -25,8 +23,7 @@ async function handler(req, res) {
 
     const botToken = process.env.BOT_TOKEN;
     if (!botToken) {
-      console.error('BOT_TOKEN not set');
-      return res.status(500).json({ error: 'Server configuration error' });
+      return res.status(500).json({ error: 'Server configuration error: BOT_TOKEN not set' });
     }
 
     // Валидация initData
@@ -38,120 +35,46 @@ async function handler(req, res) {
     const username = extractUsername(initData);
     
     if (!username) {
-      // Пробуем прочитать список разрешенных для отображения
-      let acceptedUsernames = [];
-      try {
-        const acceptedFilePath = path.join(process.cwd(), 'src', 'site', 'notes', 'accepted.md');
-        const acceptedContent = fs.readFileSync(acceptedFilePath, 'utf8');
-        acceptedUsernames = acceptedContent
-          .split('\n')
-          .map(line => line.trim())
-          .filter(line => line && !line.startsWith('#'))
-          .map(line => line.replace(/^@/, '').toLowerCase());
-      } catch (e) {
-        // Игнорируем ошибку чтения файла
-      }
-      
       return res.status(200).json({ 
         hasAccess: false,
-        username: null,
-        debug: {
-          error: 'Username not found in Telegram profile',
-          acceptedUsernames: acceptedUsernames
-        }
+        username: null
       });
     }
 
-    // Читаем файл accepted.md из папки notes
-    const possiblePaths = [
-      path.join(process.cwd(), 'src', 'site', 'notes', 'accepted.md'),
-      path.join(__dirname, '..', '..', 'src', 'site', 'notes', 'accepted.md'),
-      path.join(process.cwd(), 'accepted.md'),
-    ];
+    // Получаем список разрешенных пользователей из переменной окружения
+    const acceptedUsersEnv = process.env.ACCEPTED_USERS;
     
-    let acceptedUsernames = [];
-    let acceptedFilePath = null;
-    let fileReadError = null;
-    
-    for (const filePath of possiblePaths) {
-      try {
-        if (fs.existsSync(filePath)) {
-          acceptedFilePath = filePath;
-          const acceptedContent = fs.readFileSync(filePath, 'utf8');
-          
-          // Парсим файл: каждая строка - это username (игнорируем пустые строки и комментарии)
-          acceptedUsernames = acceptedContent
-            .split('\n')
-            .map(line => line.trim())
-            .filter(line => line && !line.startsWith('#'))
-            .map(line => line.replace(/^@/, '').toLowerCase());
-          
-          break; // Успешно прочитали файл
-        }
-      } catch (error) {
-        fileReadError = error;
-        continue; // Пробуем следующий путь
-      }
+    if (!acceptedUsersEnv) {
+      return res.status(500).json({ 
+        error: 'Server configuration error: ACCEPTED_USERS not set' 
+      });
     }
-    
-    if (!acceptedFilePath || acceptedUsernames.length === 0) {
-      console.error('check-access: Could not read accepted.md');
-      console.error('check-access: Tried paths:', possiblePaths);
-      console.error('check-access: process.cwd():', process.cwd());
-      console.error('check-access: __dirname:', __dirname);
-      console.error('check-access: Last error:', fileReadError?.message);
-      
-      // Пробуем использовать переменную окружения как fallback
-      const envAcceptedUsers = process.env.ACCEPTED_USERS;
-      if (envAcceptedUsers) {
-        console.log('check-access: Using ACCEPTED_USERS from environment');
-        acceptedUsernames = envAcceptedUsers
-          .split(',')
-          .map(u => u.trim().replace(/^@/, '').toLowerCase())
-          .filter(u => u);
-      }
-      
-      if (acceptedUsernames.length === 0) {
-        return res.status(500).json({ 
-          error: 'Could not read accepted.md file',
-          debug: {
-            triedPaths: possiblePaths,
-            lastError: fileReadError?.message,
-            cwd: process.cwd(),
-            dirname: __dirname,
-            hasEnvVar: !!envAcceptedUsers
-          }
-        });
-      }
+
+    // Парсим список разрешенных пользователей (через запятую)
+    const acceptedUsernames = acceptedUsersEnv
+      .split(',')
+      .map(u => u.trim().replace(/^@/, '').toLowerCase())
+      .filter(u => u);
+
+    if (acceptedUsernames.length === 0) {
+      return res.status(500).json({ 
+        error: 'Server configuration error: No valid usernames in ACCEPTED_USERS' 
+      });
     }
 
     // Проверяем, есть ли username в списке разрешенных
     const usernameLower = username.toLowerCase();
     const hasAccess = acceptedUsernames.includes(usernameLower);
 
-    console.log('check-access: Username:', username);
-    console.log('check-access: Username (lowercase):', usernameLower);
-    console.log('check-access: Accepted usernames:', acceptedUsernames);
-    console.log('check-access: Has access:', hasAccess);
-
     return res.status(200).json({ 
       hasAccess,
-      username,
-      debug: {
-        requestedUsername: usernameLower,
-        acceptedUsernames: acceptedUsernames,
-        match: hasAccess,
-        filePath: acceptedFilePath
-      }
+      username
     });
   } catch (error) {
     console.error('Error in check-access:', error);
-    console.error('Error stack:', error.stack);
-    console.error('Error message:', error.message);
     return res.status(500).json({ 
       error: 'Internal server error',
-      message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: error.message
     });
   }
 }

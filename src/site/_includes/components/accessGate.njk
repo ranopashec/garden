@@ -8,10 +8,6 @@
       <div class="access-denied-icon">🔒</div>
       <h2>Доступ ограничен</h2>
       <p>Эта статья доступна только авторизованным пользователям</p>
-      <div id="access-debug-info" style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.9em; display: none;">
-        <strong>Информация для отладки:</strong>
-        <div id="debug-content"></div>
-      </div>
     </div>
     <div class="article-content" style="display: none;">
       {{ content | hideDataview | link | safe }}
@@ -59,60 +55,15 @@
       return res.json();
     })
     .then(data => {
-      console.log('accessGate: Access check result:', data);
-      console.log('accessGate: Full response:', JSON.stringify(data, null, 2));
-      
       const checkingEl = accessGate.querySelector('.access-checking');
       const deniedEl = accessGate.querySelector('.access-denied');
       const contentEl = accessGate.querySelector('.article-content');
-      const debugInfo = document.getElementById('access-debug-info');
-      const debugContent = document.getElementById('debug-content');
       
       if (data.hasAccess === true) {
-        console.log('accessGate: Access granted');
         checkingEl.style.display = 'none';
         deniedEl.style.display = 'none';
         contentEl.style.display = 'block';
       } else {
-        console.log('accessGate: Access denied');
-        console.log('accessGate: Debug info:', data.debug);
-        
-        // Показываем детальную информацию об отказе
-        if (data.debug) {
-          let debugHtml = '';
-          
-          if (data.debug.requestedUsername) {
-            debugHtml += `<div style="margin: 10px 0;"><strong>Ваш username:</strong> @${data.debug.requestedUsername}</div>`;
-          }
-          
-          if (data.debug.acceptedUsernames && data.debug.acceptedUsernames.length > 0) {
-            debugHtml += `<div style="margin: 10px 0;"><strong>Разрешенные username:</strong><br>`;
-            debugHtml += data.debug.acceptedUsernames.map(u => `@${u}`).join(', ');
-            debugHtml += `</div>`;
-          }
-          
-          if (data.debug.match !== undefined) {
-            debugHtml += `<div style="margin: 10px 0; color: ${data.debug.match ? '#4caf50' : '#f44336'}"><strong>Совпадение:</strong> ${data.debug.match ? '✓ Найдено' : '✗ Не найдено'}</div>`;
-          }
-          
-          if (debugContent) {
-            debugContent.innerHTML = debugHtml;
-            if (debugInfo) {
-              debugInfo.style.display = 'block';
-            }
-          }
-        } else {
-          // Если нет debug, показываем что есть
-          if (data.username) {
-            if (debugContent) {
-              debugContent.innerHTML = `<div style="margin: 10px 0;"><strong>Ваш username:</strong> @${data.username}</div>`;
-              if (debugInfo) {
-                debugInfo.style.display = 'block';
-              }
-            }
-          }
-        }
-        
         checkingEl.style.display = 'none';
         deniedEl.style.display = 'block';
         contentEl.style.display = 'none';
