@@ -3,5 +3,6 @@
   "propertiesInDocument": "source",
   "livePreview": false,
   "defaultViewMode": "preview",
-  "vimMode": true
+  "vimMode": true,
+  "alwaysUpdateLinks": true
 }
