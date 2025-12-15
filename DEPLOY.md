@@ -51,7 +51,6 @@ git push -u origin main
 3. **Настройте переменные окружения**
    - В разделе "Environment Variables" добавьте:
      - `BOT_TOKEN` = ваш токен бота
-     - `PRIVATE_GROUP_ID` = ID закрытой группы
    - Выберите "Apply to all environments" (Production, Preview, Development)
 
 4. **Настройте сборку (если нужно)**
@@ -94,7 +93,6 @@ vercel --prod
 ```bash
 # Добавить переменную
 vercel env add BOT_TOKEN
-vercel env add PRIVATE_GROUP_ID
 
 # Применить к production
 vercel env pull .env.local
