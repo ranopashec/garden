@@ -7,6 +7,7 @@
   <body class="theme-dark markdown-preview-view markdown-rendered markdown-preview-section"
         data-share-param="{% if shareParam %}{{ shareParam }}{% else %}index{% endif %}"
         data-bot-username="{% if meta.botUsername %}{{ meta.botUsername }}{% endif %}">
+    {%include "components/telegramGate.njk"%}
     {%include "components/userInfo.njk"%}
     <main class="content cm-s-obsidian">
       {%include "components/accessGate.njk"%}

@@ -12,16 +12,7 @@
     
     if (!hasTelegram) {
       console.warn('TelegramAuth: Telegram WebApp not available. Site is not opened in Telegram Mini App.');
-      
-      // Показываем username с fallback (для тестирования)
-      const userInfo = document.getElementById('user-info');
-      if (userInfo) {
-        const usernameEl = userInfo.querySelector('.user-username');
-        if (usernameEl) {
-          usernameEl.textContent = 'Тестовый режим';
-          userInfo.style.display = 'flex';
-        }
-      }
+      // telegramGate компонент уже обработает блокировку доступа
       return;
     }
     

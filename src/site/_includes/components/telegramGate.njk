@@ -1,0 +1,79 @@
+<div id="telegram-gate" style="display: none;">
+  <div class="telegram-gate-overlay">
+    <div class="telegram-gate-content">
+      <div class="telegram-gate-icon">📱</div>
+      <h1 class="telegram-gate-title">Приложение доступно только через Telegram</h1>
+      <p class="telegram-gate-message">
+        Это приложение работает только внутри Telegram Mini App.
+        Пожалуйста, откройте его через бота в Telegram.
+      </p>
+      {% if meta.botUsername %}
+      <a href="https://t.me/{{ meta.botUsername }}" class="telegram-gate-button" target="_blank">
+        Открыть в Telegram
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  function checkTelegramAccess() {
+    const hasTelegram = !!window.Telegram?.WebApp;
+    const telegramGate = document.getElementById('telegram-gate');
+    const mainContent = document.querySelector('main.content');
+    
+    console.log('TelegramGate: Checking access, hasTelegram:', hasTelegram);
+    
+    if (!hasTelegram) {
+      // Показываем блокирующий экран
+      if (telegramGate) {
+        telegramGate.style.display = 'block';
+      }
+      // Скрываем основной контент
+      if (mainContent) {
+        mainContent.style.display = 'none';
+      }
+      // Скрываем user-info
+      const userInfo = document.getElementById('user-info');
+      if (userInfo) {
+        userInfo.style.display = 'none';
+      }
+      console.warn('TelegramGate: Access denied - Telegram WebApp not available');
+      return false;
+    } else {
+      // Скрываем блокирующий экран
+      if (telegramGate) {
+        telegramGate.style.display = 'none';
+      }
+      // Показываем основной контент
+      if (mainContent) {
+        mainContent.style.display = 'block';
+      }
+      console.log('TelegramGate: Access granted - Telegram WebApp available');
+      return true;
+    }
+  }
+  
+  // Проверяем сразу
+  function initTelegramGate() {
+    checkTelegramAccess();
+    
+    // Повторяем проверку с задержками (на случай если Telegram загружается асинхронно)
+    setTimeout(() => {
+      if (!checkTelegramAccess()) {
+        // Если после 500мс всё ещё нет Telegram, проверяем ещё раз через 2 секунды
+        setTimeout(checkTelegramAccess, 2000);
+      }
+    }, 500);
+  }
+  
+  // Инициализация при загрузке
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTelegramGate);
+  } else {
+    initTelegramGate();
+  }
+})();
+</script>
+
