@@ -109,18 +109,13 @@
       console.error('ShareButton: initDataUnsafe:', tg.initDataUnsafe);
       console.error('ShareButton: initData:', tg.initData);
       
-      // Пробуем использовать значение по умолчанию из data-атрибута или из конфига
-      // Если всё равно не найдено, показываем ошибку
-      tg.showAlert('Ошибка: не удалось определить username бота. Проверьте настройки BOT_USERNAME в Vercel.');
+      // Пробуем использовать значение по умолчанию "lidevty_bot" как fallback
+      const fallbackBotUsername = 'lidevty_bot';
+      console.warn(`ShareButton: Using fallback bot username: ${fallbackBotUsername}`);
+      botUsername = fallbackBotUsername;
       
-      // Fallback: копируем обычную ссылку (но это не то, что нужно)
-      const url = window.location.href;
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(url).then(() => {
-          console.warn('ShareButton: Fallback - copied regular URL instead of Mini App link');
-        });
-      }
-      return;
+      // Показываем предупреждение, но продолжаем работу
+      tg.showAlert('Внимание: используется значение по умолчанию для username бота. Установите BOT_USERNAME в Vercel для корректной работы.');
     }
     
     // Создаём ссылку для мини-приложения

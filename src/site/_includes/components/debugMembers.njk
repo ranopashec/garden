@@ -36,9 +36,16 @@
     },
     body: JSON.stringify({ initData })
   })
-  .then(res => {
+  .then(async res => {
+    const contentType = res.headers.get('content-type');
+    let errorData = null;
+    
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
+      // Пробуем получить JSON с деталями ошибки
+      if (contentType && contentType.includes('application/json')) {
+        errorData = await res.json();
+      }
+      throw new Error(`HTTP ${res.status}: ${errorData?.error || res.statusText}`);
     }
     return res.json();
   })
@@ -71,6 +78,9 @@
   .catch(error => {
     console.error('Error fetching group members:', error);
     debugContent.innerHTML = `<p style="color: #f06449;">Ошибка: ${error.message}</p>`;
+    if (error.message.includes('500')) {
+      debugContent.innerHTML += '<p style="opacity: 0.7; font-size: 0.9em; margin-top: 8px;">Проверьте логи сервера. Возможно, бот не добавлен в группу или нет прав на получение списка участников.</p>';
+    }
   });
 })();
 </script>

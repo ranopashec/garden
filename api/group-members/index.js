@@ -111,6 +111,7 @@ async function handler(req, res) {
       }
     } catch (error) {
       console.error('group-members: Error getting current user info:', error);
+      // Не критично, продолжаем
     }
 
     return res.status(200).json({ 
@@ -120,7 +121,20 @@ async function handler(req, res) {
     });
   } catch (error) {
     console.error('Error in group-members:', error);
-    return res.status(500).json({ error: 'Internal server error', details: error.message });
+    console.error('Error stack:', error.stack);
+    
+    // Более детальная информация об ошибке
+    let errorMessage = 'Internal server error';
+    if (error.response) {
+      errorMessage = `Telegram API error: ${error.response.statusCode} - ${error.response.body?.description || error.message}`;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    return res.status(500).json({ 
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 }
 
