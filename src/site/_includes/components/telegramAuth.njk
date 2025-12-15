@@ -1,12 +1,32 @@
 <script>
 (function() {
+  // Отладочная информация
+  console.log('TelegramAuth: Initializing...');
+  console.log('TelegramAuth: window.Telegram exists?', !!window.Telegram);
+  console.log('TelegramAuth: window.Telegram.WebApp exists?', !!window.Telegram?.WebApp);
+  
   // Ждём загрузки DOM и Telegram WebApp
   function initTelegram() {
-    if (!window.Telegram?.WebApp) {
+    const hasTelegram = !!window.Telegram?.WebApp;
+    console.log('TelegramAuth: initTelegram called, hasTelegram:', hasTelegram);
+    
+    if (!hasTelegram) {
+      console.warn('TelegramAuth: Telegram WebApp not available. Site is not opened in Telegram Mini App.');
+      
+      // Показываем username с fallback (для тестирования)
+      const userInfo = document.getElementById('user-info');
+      if (userInfo) {
+        const usernameEl = userInfo.querySelector('.user-username');
+        if (usernameEl) {
+          usernameEl.textContent = 'Тестовый режим';
+          userInfo.style.display = 'flex';
+        }
+      }
       return;
     }
     
     const tg = window.Telegram.WebApp;
+    console.log('TelegramAuth: Telegram WebApp initialized', tg);
     
     // Инициализация Telegram WebApp
     tg.ready();
@@ -15,33 +35,43 @@
     // Показываем кнопку "Назад" только если не на главной странице
     const currentPath = window.location.pathname;
     const isHomePage = currentPath === '/' || currentPath === '/index.html' || currentPath === '/index/';
+    console.log('TelegramAuth: currentPath:', currentPath, 'isHomePage:', isHomePage);
     
     if (!isHomePage) {
+      console.log('TelegramAuth: Showing BackButton');
       tg.BackButton.show();
       
       // Обработка нажатия на кнопку "Назад"
       tg.BackButton.onClick(() => {
+        console.log('TelegramAuth: BackButton clicked, navigating to /');
         window.location.href = '/';
       });
     } else {
+      console.log('TelegramAuth: Hiding BackButton (home page)');
       tg.BackButton.hide();
     }
     
     // Показываем username пользователя
     const userInfo = document.getElementById('user-info');
+    console.log('TelegramAuth: userInfo element:', userInfo);
     if (userInfo) {
       const usernameEl = userInfo.querySelector('.user-username');
       const user = tg.initDataUnsafe?.user;
+      console.log('TelegramAuth: user from initDataUnsafe:', user);
       
       if (user) {
         const displayName = user.username 
           ? `@${user.username}` 
           : (user.first_name || user.last_name || 'Пользователь');
         
+        console.log('TelegramAuth: displayName:', displayName);
         if (usernameEl) {
           usernameEl.textContent = displayName;
           userInfo.style.display = 'flex';
+          console.log('TelegramAuth: Username displayed');
         }
+      } else {
+        console.warn('TelegramAuth: User data not available in initDataUnsafe');
       }
     }
     
@@ -92,15 +122,32 @@
   }
   
   // Инициализация при загрузке
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTelegram);
-  } else {
-    initTelegram();
+  function runInit() {
+    if (document.readyState === 'loading') {
+      console.log('TelegramAuth: DOM is loading, waiting for DOMContentLoaded');
+      document.addEventListener('DOMContentLoaded', initTelegram);
+    } else {
+      console.log('TelegramAuth: DOM already loaded, calling initTelegram immediately');
+      initTelegram();
+    }
+    
+    // Также пробуем инициализировать с задержкой (на случай если Telegram загружается асинхронно)
+    setTimeout(() => {
+      console.log('TelegramAuth: Delayed init attempt');
+      if (window.Telegram?.WebApp) {
+        initTelegram();
+      }
+    }, 500);
+    
+    // Ещё одна попытка через 2 секунды
+    setTimeout(() => {
+      console.log('TelegramAuth: Second delayed init attempt');
+      if (window.Telegram?.WebApp) {
+        initTelegram();
+      }
+    }, 2000);
   }
   
-  // Также пробуем инициализировать сразу (на случай если Telegram уже загружен)
-  if (window.Telegram?.WebApp) {
-    setTimeout(initTelegram, 100);
-  }
+  runInit();
 })();
 </script>

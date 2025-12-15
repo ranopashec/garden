@@ -8,53 +8,57 @@
 
 <script>
 (function() {
+  console.log('ShareButton: Initializing...');
+  
   // Получаем shareParam из frontmatter через data-атрибут страницы
   function getShareParam() {
-    // Пробуем получить из data-атрибута body или из URL
     const body = document.body;
     const shareParam = body.dataset.shareParam;
     
     if (shareParam) {
+      console.log('ShareButton: shareParam from data-attribute:', shareParam);
       return shareParam;
     }
     
     // Вычисляем из URL
     const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
-    if (!path || path === '') {
-      return 'index';
-    }
-    // Убираем "notes/" если есть
-    return path.replace(/^notes\//, '');
+    let result = (!path || path === '') ? 'index' : path.replace(/^notes\//, '');
+    console.log('ShareButton: shareParam computed from URL:', result);
+    return result;
   }
   
   // Получаем bot username
   function getBotUsername() {
-    if (!window.Telegram?.WebApp) {
-      return null;
+    // Сначала пробуем из data-атрибута body (самый надежный способ)
+    const body = document.body;
+    let botUsername = body.dataset.botUsername;
+    console.log('ShareButton: botUsername from data-attribute:', botUsername);
+    
+    if (botUsername) {
+      return botUsername;
     }
     
-    const tg = window.Telegram.WebApp;
-    
-    // 1. Из initDataUnsafe (самый надежный способ)
-    let botUsername = tg.initDataUnsafe?.bot?.username;
-    
-    // 2. Из data-атрибута body (из meta.botUsername)
-    if (!botUsername) {
-      const body = document.body;
-      botUsername = body.dataset.botUsername;
-    }
-    
-    // 3. Из initData напрямую
-    if (!botUsername && tg.initData) {
-      try {
-        const urlParams = new URLSearchParams(tg.initData);
-        const botStr = urlParams.get('bot');
-        if (botStr) {
-          const bot = JSON.parse(botStr);
-          botUsername = bot.username;
+    // Если есть Telegram WebApp, пробуем оттуда
+    if (window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp;
+      
+      // 1. Из initDataUnsafe
+      botUsername = tg.initDataUnsafe?.bot?.username;
+      console.log('ShareButton: botUsername from initDataUnsafe:', botUsername);
+      
+      // 2. Из initData напрямую
+      if (!botUsername && tg.initData) {
+        try {
+          const urlParams = new URLSearchParams(tg.initData);
+          const botStr = urlParams.get('bot');
+          if (botStr) {
+            const bot = JSON.parse(botStr);
+            botUsername = bot.username;
+            console.log('ShareButton: botUsername from initData:', botUsername);
+          }
+        } catch (e) {
+          console.error('ShareButton: Error parsing bot from initData:', e);
         }
-      } catch (e) {
-        console.error('Error parsing bot from initData:', e);
       }
     }
     
@@ -63,26 +67,40 @@
   
   // Функция шаринга
   function shareArticle() {
-    if (!window.Telegram?.WebApp) {
+    console.log('ShareButton: shareArticle called');
+    
+    const shareParam = getShareParam();
+    const botUsername = getBotUsername();
+    const hasTelegram = !!window.Telegram?.WebApp;
+    
+    console.log('ShareButton: shareParam:', shareParam, 'botUsername:', botUsername, 'hasTelegram:', hasTelegram);
+    
+    if (!hasTelegram) {
       // Если не в Telegram, используем обычный шаринг
+      console.log('ShareButton: Not in Telegram, using regular URL');
+      const url = window.location.href;
       if (navigator.clipboard) {
-        navigator.clipboard.writeText(window.location.href).then(() => {
+        navigator.clipboard.writeText(url).then(() => {
           alert('Ссылка скопирована в буфер обмена!');
         });
+      } else {
+        alert('Ссылка: ' + url);
       }
       return;
     }
     
     const tg = window.Telegram.WebApp;
-    const shareParam = getShareParam();
-    const botUsername = getBotUsername();
     
     if (!botUsername) {
-      console.error('Bot username not found');
+      console.error('ShareButton: Bot username not found');
+      // Fallback: копируем обычную ссылку
+      const url = window.location.href;
       if (navigator.clipboard) {
-        navigator.clipboard.writeText(window.location.href).then(() => {
+        navigator.clipboard.writeText(url).then(() => {
           tg.showAlert('Ссылка скопирована в буфер обмена!');
         });
+      } else {
+        tg.showAlert('Ссылка: ' + url);
       }
       return;
     }
@@ -92,12 +110,15 @@
     const appName = botUsername; // Обычно совпадает с username
     const miniAppUrl = `https://t.me/${botUsername}/${appName}?startapp=${encodeURIComponent(shareParam)}`;
     
+    console.log('ShareButton: Generated miniAppUrl:', miniAppUrl);
+    
     // Копируем в буфер обмена
     if (navigator.clipboard) {
       navigator.clipboard.writeText(miniAppUrl).then(() => {
+        console.log('ShareButton: URL copied to clipboard');
         tg.showAlert('Ссылка скопирована! Теперь вы можете поделиться ею.');
       }).catch((err) => {
-        console.error('Clipboard error:', err);
+        console.error('ShareButton: Clipboard error:', err);
         tg.showAlert('Ссылка: ' + miniAppUrl);
       });
     } else {
@@ -114,6 +135,8 @@
     const tg = window.Telegram.WebApp;
     const startParam = tg.initDataUnsafe?.start_param;
     
+    console.log('ShareButton: startParam:', startParam);
+    
     if (startParam) {
       let targetPath = decodeURIComponent(startParam);
       
@@ -126,6 +149,8 @@
         targetPath = `/${targetPath}/`;
       }
       
+      console.log('ShareButton: Redirecting to:', targetPath);
+      
       // Перенаправляем только если путь отличается от текущего
       if (targetPath !== window.location.pathname) {
         window.location.href = targetPath;
@@ -135,9 +160,15 @@
   
   // Инициализация
   function initShareButton() {
+    console.log('ShareButton: initShareButton called');
     const shareButton = document.getElementById('share-button');
+    console.log('ShareButton: shareButton element:', shareButton);
+    
     if (shareButton) {
       shareButton.addEventListener('click', shareArticle);
+      console.log('ShareButton: Event listener added');
+    } else {
+      console.error('ShareButton: share-button element not found!');
     }
     
     // Обрабатываем start_param
@@ -146,8 +177,10 @@
   
   // Инициализация при загрузке
   if (document.readyState === 'loading') {
+    console.log('ShareButton: DOM is loading, waiting for DOMContentLoaded');
     document.addEventListener('DOMContentLoaded', initShareButton);
   } else {
+    console.log('ShareButton: DOM already loaded, calling initShareButton immediately');
     initShareButton();
   }
 })();
