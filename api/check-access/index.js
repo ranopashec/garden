@@ -96,17 +96,43 @@ async function handler(req, res) {
     
     if (!acceptedFilePath || acceptedUsernames.length === 0) {
       console.error('check-access: Could not read accepted.md');
-      return res.status(500).json({ 
-        error: 'Could not read accepted.md file',
-        debug: {
-          triedPaths: possiblePaths,
-          lastError: fileReadError?.message
-        }
-      });
+      console.error('check-access: Tried paths:', possiblePaths);
+      console.error('check-access: process.cwd():', process.cwd());
+      console.error('check-access: __dirname:', __dirname);
+      console.error('check-access: Last error:', fileReadError?.message);
+      
+      // Пробуем использовать переменную окружения как fallback
+      const envAcceptedUsers = process.env.ACCEPTED_USERS;
+      if (envAcceptedUsers) {
+        console.log('check-access: Using ACCEPTED_USERS from environment');
+        acceptedUsernames = envAcceptedUsers
+          .split(',')
+          .map(u => u.trim().replace(/^@/, '').toLowerCase())
+          .filter(u => u);
+      }
+      
+      if (acceptedUsernames.length === 0) {
+        return res.status(500).json({ 
+          error: 'Could not read accepted.md file',
+          debug: {
+            triedPaths: possiblePaths,
+            lastError: fileReadError?.message,
+            cwd: process.cwd(),
+            dirname: __dirname,
+            hasEnvVar: !!envAcceptedUsers
+          }
+        });
+      }
     }
 
     // Проверяем, есть ли username в списке разрешенных
-    const hasAccess = acceptedUsernames.includes(username.toLowerCase());
+    const usernameLower = username.toLowerCase();
+    const hasAccess = acceptedUsernames.includes(usernameLower);
+
+    console.log('check-access: Username:', username);
+    console.log('check-access: Username (lowercase):', usernameLower);
+    console.log('check-access: Accepted usernames:', acceptedUsernames);
+    console.log('check-access: Has access:', hasAccess);
 
     return res.status(200).json({ 
       hasAccess,
@@ -114,7 +140,8 @@ async function handler(req, res) {
       debug: {
         requestedUsername: usernameLower,
         acceptedUsernames: acceptedUsernames,
-        match: hasAccess
+        match: hasAccess,
+        filePath: acceptedFilePath
       }
     });
   } catch (error) {
