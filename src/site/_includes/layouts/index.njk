@@ -4,7 +4,9 @@
     <title>{% if title %}{{ title }}{% else %}{{ page.fileSlug }}{% endif %}</title>
     {%include "components/pageheader.njk"%}
   </head>
-  <body class="theme-dark markdown-preview-view markdown-rendered markdown-preview-section">
+  <body class="theme-dark markdown-preview-view markdown-rendered markdown-preview-section"
+        data-share-param="{% if shareParam %}{{ shareParam }}{% else %}index{% endif %}"
+        data-bot-username="{% if meta.botUsername %}{{ meta.botUsername }}{% endif %}">
     {%include "components/userInfo.njk"%}
     <main class="content cm-s-obsidian">
       {%include "components/accessGate.njk"%}

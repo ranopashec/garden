@@ -1,6 +1,11 @@
 <script>
 (function() {
-  if (window.Telegram?.WebApp) {
+  // Ждём загрузки DOM и Telegram WebApp
+  function initTelegram() {
+    if (!window.Telegram?.WebApp) {
+      return;
+    }
+    
     const tg = window.Telegram.WebApp;
     
     // Инициализация Telegram WebApp
@@ -8,7 +13,8 @@
     tg.expand();
     
     // Показываем кнопку "Назад" только если не на главной странице
-    const isHomePage = window.location.pathname === '/' || window.location.pathname === '/index.html';
+    const currentPath = window.location.pathname;
+    const isHomePage = currentPath === '/' || currentPath === '/index.html' || currentPath === '/index/';
     
     if (!isHomePage) {
       tg.BackButton.show();
@@ -19,6 +25,24 @@
       });
     } else {
       tg.BackButton.hide();
+    }
+    
+    // Показываем username пользователя
+    const userInfo = document.getElementById('user-info');
+    if (userInfo) {
+      const usernameEl = userInfo.querySelector('.user-username');
+      const user = tg.initDataUnsafe?.user;
+      
+      if (user) {
+        const displayName = user.username 
+          ? `@${user.username}` 
+          : (user.first_name || user.last_name || 'Пользователь');
+        
+        if (usernameEl) {
+          usernameEl.textContent = displayName;
+          userInfo.style.display = 'flex';
+        }
+      }
     }
     
     // Защита от копирования через Telegram API
@@ -66,6 +90,17 @@
       }
     });
   }
+  
+  // Инициализация при загрузке
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTelegram);
+  } else {
+    initTelegram();
+  }
+  
+  // Также пробуем инициализировать сразу (на случай если Telegram уже загружен)
+  if (window.Telegram?.WebApp) {
+    setTimeout(initTelegram, 100);
+  }
 })();
 </script>
-

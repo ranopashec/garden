@@ -1,7 +1,5 @@
 <div class="share-button-container">
-  <button class="share-button" onclick="shareArticle()" title="Поделиться" 
-          data-share-param="{% if shareParam %}{{ shareParam }}{% else %}index{% endif %}"
-          data-bot-username="{% if meta.botUsername %}{{ meta.botUsername }}{% endif %}">
+  <button class="share-button" id="share-button" title="Поделиться">
     <svg class="share-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="currentColor"/>
     </svg>
@@ -9,30 +7,44 @@
 </div>
 
 <script>
-function shareArticle(event) {
-  if (window.Telegram?.WebApp) {
+(function() {
+  // Получаем shareParam из frontmatter через data-атрибут страницы
+  function getShareParam() {
+    // Пробуем получить из data-атрибута body или из URL
+    const body = document.body;
+    const shareParam = body.dataset.shareParam;
+    
+    if (shareParam) {
+      return shareParam;
+    }
+    
+    // Вычисляем из URL
+    const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+    if (!path || path === '') {
+      return 'index';
+    }
+    // Убираем "notes/" если есть
+    return path.replace(/^notes\//, '');
+  }
+  
+  // Получаем bot username
+  function getBotUsername() {
+    if (!window.Telegram?.WebApp) {
+      return null;
+    }
+    
     const tg = window.Telegram.WebApp;
     
-    // Получаем shareParam из data-атрибута кнопки
-    const button = (event?.target?.closest('.share-button')) || document.querySelector('.share-button');
-    let shareParam = button?.dataset?.shareParam;
+    // 1. Из initDataUnsafe (самый надежный способ)
+    let botUsername = tg.initDataUnsafe?.bot?.username;
     
-    // Если shareParam не найден, вычисляем из URL
-    if (!shareParam || shareParam === '') {
-      const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
-      shareParam = path === '' ? 'index' : path.replace(/^notes\//, '');
-    }
-    
-    // Получаем bot username из разных источников
-    // 1. Из data-атрибута кнопки (из meta.botUsername)
-    let botUsername = button?.dataset?.botUsername;
-    
-    // 2. Из initDataUnsafe (Telegram WebApp API)
+    // 2. Из data-атрибута body (из meta.botUsername)
     if (!botUsername) {
-      botUsername = tg.initDataUnsafe?.bot?.username;
+      const body = document.body;
+      botUsername = body.dataset.botUsername;
     }
     
-    // 3. Если не получили из initDataUnsafe, пробуем из initData
+    // 3. Из initData напрямую
     if (!botUsername && tg.initData) {
       try {
         const urlParams = new URLSearchParams(tg.initData);
@@ -46,9 +58,27 @@ function shareArticle(event) {
       }
     }
     
-    // Если username всё ещё не определён, показываем ошибку
+    return botUsername;
+  }
+  
+  // Функция шаринга
+  function shareArticle() {
+    if (!window.Telegram?.WebApp) {
+      // Если не в Telegram, используем обычный шаринг
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+          alert('Ссылка скопирована в буфер обмена!');
+        });
+      }
+      return;
+    }
+    
+    const tg = window.Telegram.WebApp;
+    const shareParam = getShareParam();
+    const botUsername = getBotUsername();
+    
     if (!botUsername) {
-      console.error('Bot username not found. initDataUnsafe:', tg.initDataUnsafe, 'button dataset:', button?.dataset);
+      console.error('Bot username not found');
       if (navigator.clipboard) {
         navigator.clipboard.writeText(window.location.href).then(() => {
           tg.showAlert('Ссылка скопирована в буфер обмена!');
@@ -57,18 +87,12 @@ function shareArticle(event) {
       return;
     }
     
-    // Используем shareParam напрямую (уже без слэшей)
-    const startParam = shareParam;
+    // Создаём ссылку для мини-приложения
+    // Формат: https://t.me/botusername/appname?startapp=shareParam
+    const appName = botUsername; // Обычно совпадает с username
+    const miniAppUrl = `https://t.me/${botUsername}/${appName}?startapp=${encodeURIComponent(shareParam)}`;
     
-    // Создаём ссылку для открытия статьи в мини-приложении
-    // Формат: https://t.me/botusername/appname?startapp=article_path
-    // appname обычно совпадает с botusername
-    const appName = botUsername;
-    const miniAppUrl = `https://t.me/${botUsername}/${appName}?startapp=${encodeURIComponent(startParam)}`;
-    
-    console.log('Sharing URL:', miniAppUrl, 'startParam:', startParam, 'botUsername:', botUsername);
-    
-    // Копируем ссылку в буфер обмена
+    // Копируем в буфер обмена
     if (navigator.clipboard) {
       navigator.clipboard.writeText(miniAppUrl).then(() => {
         tg.showAlert('Ссылка скопирована! Теперь вы можете поделиться ею.');
@@ -79,27 +103,18 @@ function shareArticle(event) {
     } else {
       tg.showAlert('Ссылка: ' + miniAppUrl);
     }
-  } else {
-    // Если не в Telegram, копируем обычную ссылку
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        alert('Ссылка скопирована в буфер обмена!');
-      });
-    } else {
-      alert('Ссылка: ' + window.location.href);
-    }
   }
-}
-
-// Обработка start_param при загрузке страницы
-(function() {
-  if (window.Telegram?.WebApp) {
+  
+  // Обработка start_param при загрузке страницы
+  function handleStartParam() {
+    if (!window.Telegram?.WebApp) {
+      return;
+    }
+    
     const tg = window.Telegram.WebApp;
     const startParam = tg.initDataUnsafe?.start_param;
     
     if (startParam) {
-      // Если есть start_param, перенаправляем на соответствующую статью
-      // start_param в формате "article_path" (без слэшей)
       let targetPath = decodeURIComponent(startParam);
       
       // Если это "index", перенаправляем на главную
@@ -107,7 +122,6 @@ function shareArticle(event) {
         targetPath = '/';
       } else {
         // Формируем путь: /permalink/
-        // Убираем возможные слэши и добавляем их программно
         targetPath = targetPath.replace(/^\/+|\/+$/g, '');
         targetPath = `/${targetPath}/`;
       }
@@ -118,6 +132,23 @@ function shareArticle(event) {
       }
     }
   }
+  
+  // Инициализация
+  function initShareButton() {
+    const shareButton = document.getElementById('share-button');
+    if (shareButton) {
+      shareButton.addEventListener('click', shareArticle);
+    }
+    
+    // Обрабатываем start_param
+    handleStartParam();
+  }
+  
+  // Инициализация при загрузке
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initShareButton);
+  } else {
+    initShareButton();
+  }
 })();
 </script>
-
