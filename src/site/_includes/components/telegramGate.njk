@@ -19,8 +19,7 @@
 <script>
 (function() {
   let accessGranted = false;
-  let checkCount = 0;
-  const maxChecks = 150; // 15 секунд (150 * 100ms)
+  let checkInterval = null;
   
   function grantAccess() {
     if (accessGranted) return;
@@ -40,8 +39,12 @@
       userInfo.style.display = 'flex';
     }
     
+    if (checkInterval) {
+      clearInterval(checkInterval);
+      checkInterval = null;
+    }
+    
     console.log('TelegramGate: ✅ Access granted - Telegram WebApp available');
-    console.log('TelegramGate: WebApp object:', window.Telegram?.WebApp);
   }
   
   function denyAccess() {
@@ -61,132 +64,92 @@
       userInfo.style.display = 'none';
     }
     
+    if (checkInterval) {
+      clearInterval(checkInterval);
+      checkInterval = null;
+    }
+    
     console.warn('TelegramGate: ❌ Access denied - Telegram WebApp not available');
-    console.warn('TelegramGate: window.Telegram:', window.Telegram);
-    console.warn('TelegramGate: window.Telegram.WebApp:', window.Telegram?.WebApp);
   }
   
   function checkTelegramAccess() {
-    checkCount++;
-    
-    // Проверяем наличие Telegram WebApp
     const tg = window.Telegram?.WebApp;
-    const hasTelegram = !!tg;
-    
-    // Дополнительные проверки
-    const hasTelegramObject = !!window.Telegram;
-    const isInIframe = window.self !== window.top;
-    
-    // Логируем каждые 10 проверок
-    if (checkCount % 10 === 0 || hasTelegram) {
-      console.log(`TelegramGate: Check #${checkCount}`);
-      console.log('  - window.Telegram exists?', hasTelegramObject);
-      console.log('  - window.Telegram.WebApp exists?', hasTelegram);
-      console.log('  - isInIframe?', isInIframe);
-      if (tg) {
-        console.log('  - tg.version:', tg.version);
-        console.log('  - tg.platform:', tg.platform);
-        console.log('  - tg.initDataUnsafe:', tg.initDataUnsafe);
-      }
-    }
+    const hasTelegram = !!tg && typeof tg.ready === 'function';
     
     if (hasTelegram) {
-      // Проверяем, что WebApp действительно инициализирован
-      // Иногда объект может существовать, но быть пустым
-      if (tg && typeof tg.ready === 'function') {
-        grantAccess();
-        return true;
-      } else {
-        console.warn('TelegramGate: WebApp object exists but not properly initialized');
-      }
-    }
-    
-    // Если мы в iframe, даём больше времени на загрузку
-    if (isInIframe) {
-      if (checkCount < maxChecks) {
-        return false; // Продолжаем проверять
-      } else {
-        // Превышен лимит проверок в iframe - блокируем
-        denyAccess();
-        return false;
-      }
-    }
-    
-    // Если не в iframe и прошло много проверок - блокируем
-    if (checkCount >= 50) { // 5 секунд для не-iframe
-      denyAccess();
-      return false;
+      grantAccess();
+      return true;
     }
     
     return false;
   }
   
-  // Функция инициализации
   function initTelegramGate() {
     console.log('TelegramGate: Initializing...');
-    console.log('TelegramGate: Document readyState:', document.readyState);
     console.log('TelegramGate: window.Telegram initially:', window.Telegram);
+    console.log('TelegramGate: window.Telegram.WebApp initially:', window.Telegram?.WebApp);
+    
+    const isInIframe = window.self !== window.top;
+    console.log('TelegramGate: isInIframe?', isInIframe);
     
     // Проверяем сразу
     if (checkTelegramAccess()) {
       return;
     }
     
+    // Определяем таймаут в зависимости от того, в iframe мы или нет
+    // В iframe (Telegram) даём больше времени на загрузку
+    // Вне iframe (обычный браузер) блокируем быстрее
+    const timeout = isInIframe ? 10000 : 3000; // 10 сек для iframe, 3 сек для обычного браузера
+    const checkIntervalMs = 100;
+    const maxChecks = Math.floor(timeout / checkIntervalMs);
+    let checkCount = 0;
+    
+    console.log(`TelegramGate: Will check for ${timeout}ms (${maxChecks} attempts)`);
+    
     // Проверяем каждые 100ms
-    const checkInterval = setInterval(() => {
+    checkInterval = setInterval(() => {
+      checkCount++;
+      
       if (accessGranted) {
         clearInterval(checkInterval);
+        checkInterval = null;
         return;
       }
       
       if (checkTelegramAccess()) {
         clearInterval(checkInterval);
+        checkInterval = null;
         return;
       }
       
+      // Если превышен лимит проверок - блокируем доступ
       if (checkCount >= maxChecks) {
         clearInterval(checkInterval);
-        if (!accessGranted) {
-          denyAccess();
-        }
+        checkInterval = null;
+        console.warn(`TelegramGate: Timeout after ${timeout}ms, blocking access`);
+        denyAccess();
       }
-    }, 100);
+    }, checkIntervalMs);
     
-    // Финальная проверка через 15 секунд
+    // Финальная проверка через таймаут
     setTimeout(() => {
       if (!accessGranted) {
-        console.warn('TelegramGate: Final check after 15 seconds');
+        console.warn(`TelegramGate: Final check after ${timeout}ms`);
         if (checkTelegramAccess()) {
           grantAccess();
         } else {
           denyAccess();
         }
       }
-    }, 15000);
-  }
-  
-  // Ждём загрузки скрипта Telegram
-  function waitForTelegramScript() {
-    // Проверяем, загружен ли скрипт
-    const script = document.querySelector('script[src*="telegram-web-app"]');
-    if (script) {
-      console.log('TelegramGate: Telegram script found in DOM');
-      // Даём скрипту время на выполнение
-      setTimeout(initTelegramGate, 100);
-    } else {
-      console.warn('TelegramGate: Telegram script not found in DOM, waiting...');
-      // Пробуем ещё раз через 500ms
-      setTimeout(waitForTelegramScript, 500);
-    }
+    }, timeout);
   }
   
   // Инициализация
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      waitForTelegramScript();
-    });
+    document.addEventListener('DOMContentLoaded', initTelegramGate);
   } else {
-    waitForTelegramScript();
+    initTelegramGate();
   }
   
   // Также проверяем после полной загрузки страницы
