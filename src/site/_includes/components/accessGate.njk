@@ -1,87 +1,12 @@
-{% if access == "private" %}
-  <div class="access-gate" data-article-path="{{ page.url }}">
-    <div class="access-checking">
-      <div class="access-spinner"></div>
-      <p>Проверка доступа...</p>
-    </div>
-    <div class="access-denied" style="display: none;">
-      <div class="access-denied-icon">🔒</div>
-      <h2>Доступ ограничен</h2>
-      <p>Эта статья доступна только авторизованным пользователям Telegram</p>
-    </div>
-    <div class="article-content" style="display: none;">
-      {{ content | hideDataview | link | safe }}
-    </div>
+{% if access == "private" or private == true %}
+  <div class="access-gate" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center; padding: 2rem;">
+    <div class="access-denied-icon" style="font-size: 4rem; margin-bottom: 1.5rem;">🔒</div>
+    <h2 style="margin-bottom: 1rem; font-size: 1.8rem;">Эта страница скрыта владельцем</h2>
+    <a href="/" style="display: inline-block; margin-top: 1.5rem; padding: 0.75rem 2rem; background-color: var(--interactive-accent, #4a9eff); color: white; text-decoration: none; border-radius: 6px; font-weight: 500; transition: opacity 0.2s;">
+      Вернуться на главную
+    </a>
   </div>
 {% else %}
   {{ content | hideDataview | link | safe }}
 {% endif %}
-
-<script>
-(function() {
-  const accessGate = document.querySelector('.access-gate');
-  if (!accessGate) return;
-  
-  const checkingEl = accessGate.querySelector('.access-checking');
-  const deniedEl = accessGate.querySelector('.access-denied');
-  const contentEl = accessGate.querySelector('.article-content');
-  
-  function checkAccess() {
-    const tg = window.Telegram?.WebApp;
-    
-    // Проверяем наличие Telegram WebApp и данных пользователя
-    if (tg) {
-      // Проверяем initData (строка) или initDataUnsafe (объект с данными пользователя)
-      const hasInitData = tg.initData && tg.initData.length > 0;
-      const hasUserData = tg.initDataUnsafe?.user && 
-                         (tg.initDataUnsafe.user.id || tg.initDataUnsafe.user.username);
-      
-      if (hasInitData || hasUserData) {
-        // Пользователь авторизован в Telegram - разрешаем доступ
-        checkingEl.style.display = 'none';
-        deniedEl.style.display = 'none';
-        contentEl.style.display = 'block';
-        return true;
-      }
-    }
-    
-    return false;
-  }
-  
-  // Проверяем сразу
-  if (checkAccess()) {
-    return;
-  }
-  
-  // Если не сработало, ждем загрузки Telegram WebApp
-  let checkCount = 0;
-  const maxChecks = 50; // 5 секунд (50 * 100ms)
-  
-  const checkInterval = setInterval(() => {
-    checkCount++;
-    
-    if (checkAccess()) {
-      clearInterval(checkInterval);
-      return;
-    }
-    
-    // Если превышен лимит проверок - запрещаем доступ
-    if (checkCount >= maxChecks) {
-      clearInterval(checkInterval);
-      checkingEl.style.display = 'none';
-      deniedEl.style.display = 'block';
-      contentEl.style.display = 'none';
-    }
-  }, 100);
-  
-  // Также проверяем после полной загрузки страницы
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      if (checkAccess()) {
-        clearInterval(checkInterval);
-      }
-    }, 500);
-  });
-})();
-</script>
 
