@@ -48,10 +48,9 @@ git push -u origin main
    - Выберите ваш репозиторий
    - Vercel автоматически определит настройки из `vercel.json`
 
-3. **Настройте переменные окружения**
-   - В разделе "Environment Variables" добавьте:
-     - `BOT_TOKEN` = ваш токен бота
-   - Выберите "Apply to all environments" (Production, Preview, Development)
+3. **Настройте переменные окружения (опционально)**
+   - Переменные окружения не требуются для базовой работы
+   - Приложение работает только внутри Telegram Mini App
 
 4. **Настройте сборку (если нужно)**
    - Framework Preset: Other
@@ -88,15 +87,8 @@ vercel
 vercel --prod
 ```
 
-4. **Настройте переменные окружения**
-
-```bash
-# Добавить переменную
-vercel env add BOT_TOKEN
-
-# Применить к production
-vercel env pull .env.local
-```
+4. **Переменные окружения (опционально)**
+   - Для базовой работы переменные окружения не требуются
 
 ## Настройка Telegram Mini App
 

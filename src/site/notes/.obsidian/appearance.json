@@ -1,1 +1,5 @@
-{}
+{
+  "showViewHeader": false,
+  "showRibbon": false,
+  "accentColor": "#ffffff"
+}

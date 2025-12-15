@@ -7,7 +7,7 @@
     <div class="access-denied" style="display: none;">
       <div class="access-denied-icon">🔒</div>
       <h2>Доступ ограничен</h2>
-      <p>Эта статья доступна только авторизованным пользователям</p>
+      <p>Эта статья доступна только авторизованным пользователям Telegram</p>
     </div>
     <div class="article-content" style="display: none;">
       {{ content | hideDataview | link | safe }}
@@ -22,68 +22,21 @@
   const accessGate = document.querySelector('.access-gate');
   if (!accessGate) return;
   
-  if (window.Telegram?.WebApp) {
-    const tg = window.Telegram.WebApp;
-    const initData = tg.initData;
-    
-    if (!initData) {
-      // Если нет initData, показываем сообщение об ошибке
-      accessGate.querySelector('.access-checking').style.display = 'none';
-      accessGate.querySelector('.access-denied').style.display = 'block';
-      return;
-    }
-    
-    // Запрос к API для проверки доступа
-    fetch('/api/check-access', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json' 
-      },
-      body: JSON.stringify({ initData })
-    })
-    .then(async res => {
-      if (!res.ok) {
-        // Пробуем получить JSON с деталями ошибки
-        let errorData = null;
-        try {
-          errorData = await res.json();
-        } catch (e) {
-          // Если не удалось распарсить JSON, используем текст ошибки
-        }
-        throw new Error(errorData?.error || `HTTP ${res.status}`);
-      }
-      return res.json();
-    })
-    .then(data => {
-      const checkingEl = accessGate.querySelector('.access-checking');
-      const deniedEl = accessGate.querySelector('.access-denied');
-      const contentEl = accessGate.querySelector('.article-content');
-      
-      if (data.hasAccess === true) {
-        checkingEl.style.display = 'none';
-        deniedEl.style.display = 'none';
-        contentEl.style.display = 'block';
-      } else {
-        checkingEl.style.display = 'none';
-        deniedEl.style.display = 'block';
-        contentEl.style.display = 'none';
-      }
-    })
-    .catch(error => {
-      console.error('accessGate: Error checking access:', error);
-      const checkingEl = accessGate.querySelector('.access-checking');
-      const deniedEl = accessGate.querySelector('.access-denied');
-      
-      checkingEl.style.display = 'none';
-      deniedEl.style.display = 'block';
-    });
+  const checkingEl = accessGate.querySelector('.access-checking');
+  const deniedEl = accessGate.querySelector('.access-denied');
+  const contentEl = accessGate.querySelector('.article-content');
+  
+  // Проверяем, что пользователь открыл приложение через Telegram WebApp
+  if (window.Telegram?.WebApp && window.Telegram.WebApp.initData) {
+    // Пользователь авторизован в Telegram - разрешаем доступ
+    checkingEl.style.display = 'none';
+    deniedEl.style.display = 'none';
+    contentEl.style.display = 'block';
   } else {
-    // Если не в Telegram, показываем сообщение
-    const checkingEl = accessGate.querySelector('.access-checking');
-    const deniedEl = accessGate.querySelector('.access-denied');
-    
+    // Пользователь не авторизован - запрещаем доступ
     checkingEl.style.display = 'none';
     deniedEl.style.display = 'block';
+    contentEl.style.display = 'none';
   }
 })();
 </script>

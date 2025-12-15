@@ -1,1 +1,7 @@
-{}
+{
+  "showInlineTitle": false,
+  "propertiesInDocument": "source",
+  "livePreview": false,
+  "defaultViewMode": "preview",
+  "vimMode": true
+}
