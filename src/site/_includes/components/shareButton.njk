@@ -146,13 +146,41 @@
     }
     
     const tg = window.Telegram.WebApp;
-    const startParam = tg.initDataUnsafe?.start_param;
+    let startParam = tg.initDataUnsafe?.start_param;
     
-    console.log('ShareButton: startParam:', startParam);
+    console.log('ShareButton: startParam (raw):', startParam);
     
     if (startParam) {
-      // startParam уже в транслите (латиница), не нужно декодировать
-      // Просто используем как есть
+      // Декодируем, если это URL-encoded (для обратной совместимости)
+      try {
+        const decoded = decodeURIComponent(startParam);
+        // Если декодирование изменило строку и содержит кириллицу, значит это старый формат
+        if (decoded !== startParam && /[а-яё]/i.test(decoded)) {
+          console.log('ShareButton: Detected old format (URL-encoded), decoding:', decoded);
+          // Транслитерируем кириллицу
+          // Простая транслитерация на клиенте (упрощённая версия)
+          const translitMap = {
+            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+            'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+            'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+            'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+            'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+          };
+          startParam = decoded
+            .toLowerCase()
+            .split('')
+            .map(char => translitMap[char] || char)
+            .join('')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+          console.log('ShareButton: Transliterated to:', startParam);
+        }
+      } catch (e) {
+        // Если декодирование не удалось, используем как есть
+        console.log('ShareButton: Could not decode, using as is');
+      }
+      
+      // startParam теперь в транслите (латиница)
       let targetPath = startParam;
       
       // Если это "index", перенаправляем на главную
@@ -164,11 +192,15 @@
         targetPath = `/${targetPath}/`;
       }
       
-      console.log('ShareButton: Redirecting to:', targetPath);
+      console.log('ShareButton: Final targetPath:', targetPath);
+      console.log('ShareButton: Current pathname:', window.location.pathname);
       
       // Перенаправляем только если путь отличается от текущего
       if (targetPath !== window.location.pathname) {
+        console.log('ShareButton: Redirecting to:', targetPath);
         window.location.href = targetPath;
+      } else {
+        console.log('ShareButton: Already on target page, no redirect needed');
       }
     }
   }
