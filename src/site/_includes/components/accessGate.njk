@@ -26,18 +26,62 @@
   const deniedEl = accessGate.querySelector('.access-denied');
   const contentEl = accessGate.querySelector('.article-content');
   
-  // Проверяем, что пользователь открыл приложение через Telegram WebApp
-  if (window.Telegram?.WebApp && window.Telegram.WebApp.initData) {
-    // Пользователь авторизован в Telegram - разрешаем доступ
-    checkingEl.style.display = 'none';
-    deniedEl.style.display = 'none';
-    contentEl.style.display = 'block';
-  } else {
-    // Пользователь не авторизован - запрещаем доступ
-    checkingEl.style.display = 'none';
-    deniedEl.style.display = 'block';
-    contentEl.style.display = 'none';
+  function checkAccess() {
+    const tg = window.Telegram?.WebApp;
+    
+    // Проверяем наличие Telegram WebApp и данных пользователя
+    if (tg) {
+      // Проверяем initData (строка) или initDataUnsafe (объект с данными пользователя)
+      const hasInitData = tg.initData && tg.initData.length > 0;
+      const hasUserData = tg.initDataUnsafe?.user && 
+                         (tg.initDataUnsafe.user.id || tg.initDataUnsafe.user.username);
+      
+      if (hasInitData || hasUserData) {
+        // Пользователь авторизован в Telegram - разрешаем доступ
+        checkingEl.style.display = 'none';
+        deniedEl.style.display = 'none';
+        contentEl.style.display = 'block';
+        return true;
+      }
+    }
+    
+    return false;
   }
+  
+  // Проверяем сразу
+  if (checkAccess()) {
+    return;
+  }
+  
+  // Если не сработало, ждем загрузки Telegram WebApp
+  let checkCount = 0;
+  const maxChecks = 50; // 5 секунд (50 * 100ms)
+  
+  const checkInterval = setInterval(() => {
+    checkCount++;
+    
+    if (checkAccess()) {
+      clearInterval(checkInterval);
+      return;
+    }
+    
+    // Если превышен лимит проверок - запрещаем доступ
+    if (checkCount >= maxChecks) {
+      clearInterval(checkInterval);
+      checkingEl.style.display = 'none';
+      deniedEl.style.display = 'block';
+      contentEl.style.display = 'none';
+    }
+  }, 100);
+  
+  // Также проверяем после полной загрузки страницы
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      if (checkAccess()) {
+        clearInterval(checkInterval);
+      }
+    }, 500);
+  });
 })();
 </script>
 
