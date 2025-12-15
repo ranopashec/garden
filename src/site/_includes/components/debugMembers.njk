@@ -1,0 +1,77 @@
+<div id="debug-members" style="display: none; margin-top: 40px; padding: 20px; background-color: var(--background-secondary); border-radius: var(--tg-radius); border-top: 2px solid var(--text-accent);">
+  <h3 style="color: var(--text-accent); margin-top: 0;">🔍 Отладка: Участники группы</h3>
+  <div id="debug-members-content">
+    <p style="opacity: 0.7;">Загрузка...</p>
+  </div>
+</div>
+
+<script>
+(function() {
+  if (!window.Telegram?.WebApp) {
+    return;
+  }
+  
+  const tg = window.Telegram.WebApp;
+  const initData = tg.initData;
+  
+  if (!initData) {
+    return;
+  }
+  
+  const debugContainer = document.getElementById('debug-members');
+  const debugContent = document.getElementById('debug-members-content');
+  
+  if (!debugContainer || !debugContent) {
+    return;
+  }
+  
+  // Показываем контейнер
+  debugContainer.style.display = 'block';
+  
+  // Запрашиваем список участников
+  fetch('/api/group-members', {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json' 
+    },
+    body: JSON.stringify({ initData })
+  })
+  .then(res => {
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    return res.json();
+  })
+  .then(data => {
+    console.log('Debug members:', data);
+    
+    if (data.members && data.members.length > 0) {
+      let html = `<p><strong>Группа:</strong> ${data.groupIdentifier}</p>`;
+      html += `<p><strong>Найдено участников:</strong> ${data.count}</p>`;
+      html += '<ul style="list-style: none; padding: 0; margin: 16px 0;">';
+      
+      data.members.forEach(member => {
+        const username = member.username ? `@${member.username}` : (member.first_name || 'Без username');
+        const name = member.first_name || member.title || 'Неизвестно';
+        const status = member.status || member.type || 'unknown';
+        
+        html += `<li style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">`;
+        html += `<strong>${name}</strong> `;
+        html += `<span style="opacity: 0.7;">(${username})</span> `;
+        html += `<span style="opacity: 0.5; font-size: 0.9em;">[${status}]</span>`;
+        html += `</li>`;
+      });
+      
+      html += '</ul>';
+      debugContent.innerHTML = html;
+    } else {
+      debugContent.innerHTML = '<p style="opacity: 0.7;">Участники не найдены</p>';
+    }
+  })
+  .catch(error => {
+    console.error('Error fetching group members:', error);
+    debugContent.innerHTML = `<p style="color: #f06449;">Ошибка: ${error.message}</p>`;
+  });
+})();
+</script>
+
