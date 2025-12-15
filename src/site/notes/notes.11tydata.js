@@ -23,14 +23,17 @@ module.exports = {
       return data.access || "public";
     },
     shareParam: (data) => {
-      // Чистый permalink для шаринга (без слэшей)
+      // Чистый permalink для шаринга (без слэшей, пробелов и лишних символов)
+      let param;
       if (data.index === true) {
-        return "index";
+        param = "index";
+      } else if (data.permalink) {
+        param = data.permalink.replace(/^\/+|\/+$/g, '').trim();
+      } else {
+        param = data.page.fileSlug;
       }
-      if (data.permalink) {
-        return data.permalink.replace(/^\/+|\/+$/g, '');
-      }
-      return data.page.fileSlug;
+      // Убираем все лишние пробелы и символы новой строки
+      return param.replace(/\s+/g, '').replace(/\n/g, '');
     },
   },
 };
