@@ -38,16 +38,30 @@ async function handler(req, res) {
       return res.status(400).json({ error: 'Could not extract user ID' });
     }
 
-    // Проверка группы (используем глобальный PRIVATE_GROUP_ID)
+    // Проверка группы
+    // Поддерживаем два варианта: PRIVATE_GROUP_ID или PRIVATE_GROUP_USERNAME
+    // Приоритет: сначала пробуем username, если не задан - используем ID
+    const groupUsername = process.env.PRIVATE_GROUP_USERNAME;
     const groupId = process.env.PRIVATE_GROUP_ID;
-    if (!groupId) {
-      console.error('check-access: PRIVATE_GROUP_ID not set');
-      return res.status(500).json({ error: 'Server configuration error' });
+    
+    let groupIdentifier = null;
+    
+    if (groupUsername) {
+      // Используем username группы (например, "@mygroup" или "mygroup")
+      groupIdentifier = groupUsername;
+      console.log(`check-access: Using group username: ${groupIdentifier}`);
+    } else if (groupId) {
+      // Используем ID группы (например, "-123456789")
+      groupIdentifier = groupId;
+      console.log(`check-access: Using group ID: ${groupIdentifier}`);
+    } else {
+      console.error('check-access: Neither PRIVATE_GROUP_USERNAME nor PRIVATE_GROUP_ID is set');
+      return res.status(500).json({ error: 'Server configuration error: group identifier not set' });
     }
 
-    console.log(`check-access: Checking access for user ${userId} in group ${groupId}`);
+    console.log(`check-access: Checking access for user ${userId} in group ${groupIdentifier}`);
 
-    const hasAccess = await checkUserInGroup(userId, groupId);
+    const hasAccess = await checkUserInGroup(userId, groupIdentifier);
 
     console.log(`check-access: Access result for user ${userId}: ${hasAccess}`);
 

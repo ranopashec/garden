@@ -28,7 +28,8 @@ npm install
 
 ```env
 BOT_TOKEN=your_bot_token_here
-PRIVATE_GROUP_ID=123456789
+PRIVATE_GROUP_ID=123456789  # ИЛИ используйте PRIVATE_GROUP_USERNAME
+PRIVATE_GROUP_USERNAME=mygroup  # Опционально: username группы без @ (например: mygroup)
 BOT_USERNAME=your_bot_username  # Опционально: username бота без @ (например: mybot)
 ```
 
@@ -37,17 +38,27 @@ BOT_USERNAME=your_bot_username  # Опционально: username бота бе
 2. Отправьте `/newbot` и следуйте инструкциям
 3. Скопируйте токен бота
 
-**Как получить PRIVATE_GROUP_ID:**
+**Как получить PRIVATE_GROUP_ID или PRIVATE_GROUP_USERNAME:**
+
+**Вариант 1: По ID группы (для любых групп)**
 1. Добавьте бота в группу/канал
 2. Отправьте любое сообщение в группу
 3. Используйте API: `https://api.telegram.org/bot<BOT_TOKEN>/getUpdates`
-4. Найдите `chat.id` в ответе
+4. Найдите `chat.id` в ответе (для групп это отрицательное число, например: `-123456789`)
+
+**Вариант 2: По username группы (только для публичных групп с username)**
+1. Убедитесь, что группа имеет публичный username (например, `@mygroup`)
+2. Установите `PRIVATE_GROUP_USERNAME=mygroup` (без @)
+3. Бот должен быть участником группы
+
+**Примечание:** Если указаны оба параметра (`PRIVATE_GROUP_ID` и `PRIVATE_GROUP_USERNAME`), приоритет имеет `PRIVATE_GROUP_USERNAME`.
 
 ### 3. Настройка в Vercel
 
 1. Добавьте переменные окружения в настройках проекта Vercel:
-   - `BOT_TOKEN` - токен бота
-   - `PRIVATE_GROUP_ID` - ID закрытой группы
+   - `BOT_TOKEN` - токен бота (обязательно)
+   - `PRIVATE_GROUP_ID` - ID закрытой группы (обязательно, если не используется PRIVATE_GROUP_USERNAME)
+   - `PRIVATE_GROUP_USERNAME` - username группы без @ (опционально, альтернатива PRIVATE_GROUP_ID)
    - `BOT_USERNAME` - username бота без @ (опционально, но рекомендуется для работы кнопки "Поделиться")
 
 2. Убедитесь, что функция `api/check-access` использует Node.js 22.x
