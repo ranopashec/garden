@@ -40,8 +40,10 @@ function getAnchorAttributes(filePath, linkTitle) {
     if (frontMatter.data.index === true) {
       permalink = "/";
     } else if (frontMatter.data.permalink) {
-      // Если указан permalink, убираем слэши и добавляем их программно
-      let cleanPermalink = frontMatter.data.permalink.replace(/^\/+|\/+$/g, '');
+      // Если указан permalink, убираем слэши, транслитерируем и добавляем слэши программно
+      const { transliterate } = require('./src/helpers/translit');
+      let cleanPermalink = frontMatter.data.permalink.replace(/^\/+|\/+$/g, '').trim();
+      cleanPermalink = transliterate(cleanPermalink);
       permalink = `/${cleanPermalink}/`;
     }
   } catch {

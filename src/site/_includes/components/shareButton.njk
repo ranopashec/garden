@@ -108,12 +108,13 @@
     
     // Создаём ссылку для мини-приложения
     // Формат: https://t.me/botusername?startapp=shareParam
-    // Очищаем все параметры от лишних символов, пробелов и переносов строк
+    // shareParam уже транслитерирован на сервере, просто очищаем от лишних символов
     const cleanBotUsername = botUsername.trim().replace(/[\s\n\r]+/g, '');
     const cleanShareParam = shareParam.trim().replace(/[\s\n\r]+/g, '');
     
     // Формируем ссылку как одну строку без переносов
-    const miniAppUrl = `https://t.me/${cleanBotUsername}?startapp=${encodeURIComponent(cleanShareParam)}`;
+    // Не используем encodeURIComponent, так как shareParam уже в транслите (латиница)
+    const miniAppUrl = `https://t.me/${cleanBotUsername}?startapp=${cleanShareParam}`;
     
     // Проверяем, что ссылка не содержит переносов строк
     const urlWithoutNewlines = miniAppUrl.replace(/[\n\r]/g, '');
@@ -121,7 +122,6 @@
     console.log('ShareButton: Generated miniAppUrl:', urlWithoutNewlines);
     console.log('ShareButton: shareParam (original):', shareParam);
     console.log('ShareButton: shareParam (cleaned):', cleanShareParam);
-    console.log('ShareButton: shareParam (encoded):', encodeURIComponent(cleanShareParam));
     console.log('ShareButton: URL length:', urlWithoutNewlines.length);
     console.log('ShareButton: URL contains newlines?', urlWithoutNewlines !== miniAppUrl);
     
@@ -151,7 +151,9 @@
     console.log('ShareButton: startParam:', startParam);
     
     if (startParam) {
-      let targetPath = decodeURIComponent(startParam);
+      // startParam уже в транслите (латиница), не нужно декодировать
+      // Просто используем как есть
+      let targetPath = startParam;
       
       // Если это "index", перенаправляем на главную
       if (targetPath === 'index') {
