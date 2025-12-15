@@ -203,8 +203,6 @@ module.exports = function (eleventyConfig) {
 
   eleventyConfig.addPassthroughCopy("src/site/img");
   eleventyConfig.addPassthroughCopy("src/site/styles/_theme.*.css");
-  // Копируем accepted.md для использования в API
-  eleventyConfig.addPassthroughCopy("src/site/notes/accepted.md");
 
   userEleventySetup(eleventyConfig);
 
