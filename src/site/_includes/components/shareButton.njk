@@ -36,7 +36,9 @@
     
     if (botUsername) {
       // Очищаем от пробелов и переносов строк
-      return botUsername.trim().replace(/[\s\n\r]+/g, '');
+      const cleaned = botUsername.trim().replace(/[\s\n\r]+/g, '');
+      console.log('ShareButton: botUsername cleaned:', cleaned);
+      return cleaned;
     }
     
     // Если есть Telegram WebApp, пробуем оттуда
@@ -52,6 +54,7 @@
         try {
           const urlParams = new URLSearchParams(tg.initData);
           const botStr = urlParams.get('bot');
+          console.log('ShareButton: botStr from initData:', botStr);
           if (botStr) {
             const bot = JSON.parse(botStr);
             botUsername = bot.username;
@@ -61,8 +64,16 @@
           console.error('ShareButton: Error parsing bot from initData:', e);
         }
       }
+      
+      // 3. Пробуем из query параметров URL (если есть)
+      if (!botUsername) {
+        const urlParams = new URLSearchParams(window.location.search);
+        botUsername = urlParams.get('bot');
+        console.log('ShareButton: botUsername from URL params:', botUsername);
+      }
     }
     
+    console.log('ShareButton: Final botUsername:', botUsername);
     return botUsername;
   }
   
@@ -94,14 +105,20 @@
     
     if (!botUsername) {
       console.error('ShareButton: Bot username not found');
-      // Fallback: копируем обычную ссылку
+      console.error('ShareButton: body.dataset:', document.body.dataset);
+      console.error('ShareButton: initDataUnsafe:', tg.initDataUnsafe);
+      console.error('ShareButton: initData:', tg.initData);
+      
+      // Пробуем использовать значение по умолчанию из data-атрибута или из конфига
+      // Если всё равно не найдено, показываем ошибку
+      tg.showAlert('Ошибка: не удалось определить username бота. Проверьте настройки BOT_USERNAME в Vercel.');
+      
+      // Fallback: копируем обычную ссылку (но это не то, что нужно)
       const url = window.location.href;
       if (navigator.clipboard) {
         navigator.clipboard.writeText(url).then(() => {
-          tg.showAlert('Ссылка скопирована в буфер обмена!');
+          console.warn('ShareButton: Fallback - copied regular URL instead of Mini App link');
         });
-      } else {
-        tg.showAlert('Ссылка: ' + url);
       }
       return;
     }
