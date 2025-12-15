@@ -20,6 +20,7 @@ module.exports = async (data) => {
     mainLanguage: process.env.SITE_MAIN_LANGUAGE || "en",
     siteBaseUrl: baseUrl,
     buildDate: new Date(),
+    botUsername: process.env.BOT_USERNAME || null,
   };
 
   return meta;

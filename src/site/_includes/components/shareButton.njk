@@ -1,7 +1,9 @@
 <div class="share-button-container">
-  <button class="share-button" onclick="shareArticle()" title="Поделиться" data-share-param="{% if shareParam %}{{ shareParam }}{% else %}index{% endif %}">
+  <button class="share-button" onclick="shareArticle()" title="Поделиться" 
+          data-share-param="{% if shareParam %}{{ shareParam }}{% else %}index{% endif %}"
+          data-bot-username="{% if meta.botUsername %}{{ meta.botUsername }}{% endif %}">
     <svg class="share-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M21.154 2.571a.9.9 0 0 0-1.018.25l-8.2 7.428a.5.5 0 0 1-.672 0L3.864 2.821A.9.9 0 0 0 2 3.428v16.286a.9.9 0 0 0 1.836.178l6.5-5.143a.5.5 0 0 1 .664 0l6.5 5.143a.9.9 0 0 0 1.836-.178V3.428a.9.9 0 0 0-.182-.857z" fill="currentColor" stroke="currentColor" stroke-width="0.3"/>
+      <path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="currentColor"/>
     </svg>
   </button>
 </div>
@@ -21,11 +23,32 @@ function shareArticle(event) {
       shareParam = path === '' ? 'index' : path.replace(/^notes\//, '');
     }
     
-    // Получаем bot username из initData
-    const botUsername = tg.initDataUnsafe?.bot?.username;
+    // Получаем bot username из разных источников
+    // 1. Из data-атрибута кнопки (из meta.botUsername)
+    let botUsername = button?.dataset?.botUsername;
     
+    // 2. Из initDataUnsafe (Telegram WebApp API)
     if (!botUsername) {
-      // Если нет bot username, копируем обычную ссылку
+      botUsername = tg.initDataUnsafe?.bot?.username;
+    }
+    
+    // 3. Если не получили из initDataUnsafe, пробуем из initData
+    if (!botUsername && tg.initData) {
+      try {
+        const urlParams = new URLSearchParams(tg.initData);
+        const botStr = urlParams.get('bot');
+        if (botStr) {
+          const bot = JSON.parse(botStr);
+          botUsername = bot.username;
+        }
+      } catch (e) {
+        console.error('Error parsing bot from initData:', e);
+      }
+    }
+    
+    // Если username всё ещё не определён, показываем ошибку
+    if (!botUsername) {
+      console.error('Bot username not found. initDataUnsafe:', tg.initDataUnsafe, 'button dataset:', button?.dataset);
       if (navigator.clipboard) {
         navigator.clipboard.writeText(window.location.href).then(() => {
           tg.showAlert('Ссылка скопирована в буфер обмена!');
@@ -39,14 +62,18 @@ function shareArticle(event) {
     
     // Создаём ссылку для открытия статьи в мини-приложении
     // Формат: https://t.me/botusername/appname?startapp=article_path
+    // appname обычно совпадает с botusername
     const appName = botUsername;
     const miniAppUrl = `https://t.me/${botUsername}/${appName}?startapp=${encodeURIComponent(startParam)}`;
+    
+    console.log('Sharing URL:', miniAppUrl, 'startParam:', startParam, 'botUsername:', botUsername);
     
     // Копируем ссылку в буфер обмена
     if (navigator.clipboard) {
       navigator.clipboard.writeText(miniAppUrl).then(() => {
         tg.showAlert('Ссылка скопирована! Теперь вы можете поделиться ею.');
-      }).catch(() => {
+      }).catch((err) => {
+        console.error('Clipboard error:', err);
         tg.showAlert('Ссылка: ' + miniAppUrl);
       });
     } else {
