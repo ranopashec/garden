@@ -9,7 +9,7 @@
         data-bot-username="{% if meta.botUsername %}{{ meta.botUsername }}{% endif %}">
     {%include "components/telegramGate.njk"%}
     {%include "components/userInfo.njk"%}
-    <main class="content cm-s-obsidian">
+    <main class="content cm-s-obsidian" style="display: none;">
       {%include "components/accessGate.njk"%}
     </main>
   </body>
