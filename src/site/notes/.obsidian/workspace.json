@@ -25,17 +25,17 @@
             }
           },
           {
-            "id": "64515f807c634e9e",
+            "id": "f10aa493d0bc5cbb",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Методика.md",
+                "file": "Моя история.md",
                 "mode": "preview",
                 "source": true
               },
               "icon": "lucide-file",
-              "title": "Методика"
+              "title": "Моя история"
             }
           }
         ],
@@ -105,12 +105,12 @@
       "bases:Create new base": false
     }
   },
-  "active": "64515f807c634e9e",
+  "active": "f10aa493d0bc5cbb",
   "lastOpenFiles": [
     "index.md",
+    "Методика.md",
     "Моя история.md",
     "Кейсы.md",
-    "Методика.md",
     "Запросы.md",
     "accepted.md"
   ]
