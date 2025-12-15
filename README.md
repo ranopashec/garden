@@ -29,6 +29,7 @@ npm install
 ```env
 BOT_TOKEN=your_bot_token_here
 PRIVATE_GROUP_ID=123456789
+BOT_USERNAME=your_bot_username  # Опционально: username бота без @ (например: mybot)
 ```
 
 **Как получить BOT_TOKEN:**
@@ -47,6 +48,7 @@ PRIVATE_GROUP_ID=123456789
 1. Добавьте переменные окружения в настройках проекта Vercel:
    - `BOT_TOKEN` - токен бота
    - `PRIVATE_GROUP_ID` - ID закрытой группы
+   - `BOT_USERNAME` - username бота без @ (опционально, но рекомендуется для работы кнопки "Поделиться")
 
 2. Убедитесь, что функция `api/check-access` использует Node.js 22.x
 
