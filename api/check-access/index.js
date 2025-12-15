@@ -40,35 +40,75 @@ async function handler(req, res) {
       console.log('check-access: Username not found in initData');
       return res.status(200).json({ 
         hasAccess: false,
-        username: null
+        username: null,
+        reason: 'Username not found in Telegram profile'
       });
     }
 
-    // Читаем файл accepted.md из папки хранилища (src/site/notes/)
-    const acceptedFilePath = path.join(process.cwd(), 'src', 'site', 'notes', 'accepted.md');
+    console.log(`check-access: Extracted username: ${username}`);
+
+    // Пробуем несколько возможных путей к файлу accepted.md
+    const possiblePaths = [
+      path.join(process.cwd(), 'src', 'site', 'notes', 'accepted.md'), // Локальная разработка
+      path.join(process.cwd(), 'dist', 'notes', 'accepted.md'), // После сборки Eleventy
+      path.join(process.cwd(), 'dist', 'accepted.md'), // В dist корне
+      path.join(process.cwd(), 'accepted.md'), // В корне проекта
+      path.join(__dirname, '..', '..', 'src', 'site', 'notes', 'accepted.md'), // Относительно API (локально)
+      path.join(__dirname, '..', '..', 'dist', 'notes', 'accepted.md'), // Относительно API (после сборки)
+    ];
     
     let acceptedUsernames = [];
-    try {
-      const acceptedContent = fs.readFileSync(acceptedFilePath, 'utf8');
-      // Парсим файл: каждая строка - это username (игнорируем пустые строки и комментарии)
-      acceptedUsernames = acceptedContent
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line && !line.startsWith('#')) // Игнорируем пустые строки и комментарии
-        .map(line => line.replace(/^@/, '').toLowerCase()); // Убираем @ если есть и приводим к нижнему регистру
-    } catch (error) {
-      console.error('check-access: Error reading accepted.md:', error);
-      return res.status(500).json({ error: 'Could not read accepted.md file' });
+    let acceptedFilePath = null;
+    
+    for (const filePath of possiblePaths) {
+      try {
+        if (fs.existsSync(filePath)) {
+          acceptedFilePath = filePath;
+          const acceptedContent = fs.readFileSync(filePath, 'utf8');
+          console.log(`check-access: Found accepted.md at: ${filePath}`);
+          console.log(`check-access: File content length: ${acceptedContent.length}`);
+          
+          // Парсим файл: каждая строка - это username (игнорируем пустые строки и комментарии)
+          acceptedUsernames = acceptedContent
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line && !line.startsWith('#')) // Игнорируем пустые строки и комментарии
+            .map(line => line.replace(/^@/, '').toLowerCase()); // Убираем @ если есть и приводим к нижнему регистру
+          
+          console.log(`check-access: Parsed ${acceptedUsernames.length} usernames:`, acceptedUsernames);
+          break;
+        }
+      } catch (error) {
+        console.log(`check-access: Path not found or error: ${filePath}`, error.message);
+        continue;
+      }
+    }
+    
+    if (!acceptedFilePath || acceptedUsernames.length === 0) {
+      console.error('check-access: Could not find accepted.md file in any of the expected locations');
+      return res.status(500).json({ 
+        error: 'Could not read accepted.md file',
+        triedPaths: possiblePaths
+      });
     }
 
     // Проверяем, есть ли username в списке разрешенных
-    const hasAccess = acceptedUsernames.includes(username.toLowerCase());
+    const usernameLower = username.toLowerCase();
+    const hasAccess = acceptedUsernames.includes(usernameLower);
 
-    console.log(`check-access: Checking access for username ${username}, result: ${hasAccess}`);
+    console.log(`check-access: Checking access for username "${username}" (normalized: "${usernameLower}")`);
+    console.log(`check-access: Accepted usernames:`, acceptedUsernames);
+    console.log(`check-access: Access result: ${hasAccess}`);
 
     return res.status(200).json({ 
       hasAccess,
-      username 
+      username,
+      acceptedUsernames: acceptedUsernames.length,
+      debug: process.env.NODE_ENV === 'development' ? {
+        filePath: acceptedFilePath,
+        parsedUsernames: acceptedUsernames,
+        requestedUsername: usernameLower
+      } : undefined
     });
   } catch (error) {
     console.error('Error in check-access:', error);
