@@ -1,11 +1,6 @@
 <div class="share-button-container">
-  <button class="share-button" onclick="shareArticle()">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-      <polyline points="16 6 12 2 8 6"></polyline>
-      <line x1="12" y1="2" x2="12" y2="15"></line>
-    </svg>
-    <span>Поделиться</span>
+  <button class="share-button" onclick="shareArticle()" title="Поделиться" data-article-url="{{ page.url }}">
+    <span class="share-icon">✈️</span>
   </button>
 </div>
 
@@ -13,22 +8,27 @@
 function shareArticle() {
   if (window.Telegram?.WebApp) {
     const tg = window.Telegram.WebApp;
-    const articlePath = window.location.pathname;
+    
+    // Получаем permalink из data-атрибута кнопки или используем текущий путь
+    const button = event?.target?.closest('.share-button') || document.querySelector('.share-button');
+    const articleUrl = button?.dataset?.articleUrl || window.location.pathname;
     
     // Получаем bot username из initData
-    // Формат ссылки: https://t.me/YourBot/YourApp?startapp=article_path
     const botUsername = tg.initDataUnsafe?.bot?.username;
     
     if (!botUsername) {
-      // Если нет bot username, используем обычный шаринг
-      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent('Читай статью: ' + document.title)}`;
-      tg.openLink(shareUrl);
+      // Если нет bot username, копируем обычную ссылку
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+          tg.showAlert('Ссылка скопирована в буфер обмена!');
+        });
+      }
       return;
     }
     
     // Кодируем путь статьи как start_param
     // Убираем все слэши и используем чистый путь
-    let startParam = articlePath.replace(/^\/+|\/+$/g, '');
+    let startParam = articleUrl.replace(/^\/+|\/+$/g, '');
     
     // Если это главная страница, используем "index"
     if (!startParam || startParam === '') {
@@ -40,30 +40,27 @@ function shareArticle() {
     
     // Создаём ссылку для открытия статьи в мини-приложении
     // Формат: https://t.me/botusername/appname?startapp=article_path
-    // appname обычно совпадает с botusername или задаётся при создании мини-приложения
-    const appName = botUsername; // Можно изменить если app name отличается
+    const appName = botUsername;
     const miniAppUrl = `https://t.me/${botUsername}/${appName}?startapp=${encodeURIComponent(startParam)}`;
     
-    // Используем Telegram WebApp API для шаринга
-    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(miniAppUrl)}&text=${encodeURIComponent('Читай статью: ' + document.title)}`;
-    
-    tg.openLink(shareUrl);
-  } else {
-    // Если не в Telegram, используем Web Share API
-    if (navigator.share) {
-      navigator.share({
-        title: document.title,
-        url: window.location.href
-      }).catch(err => console.log('Error sharing', err));
+    // Копируем ссылку в буфер обмена
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(miniAppUrl).then(() => {
+        tg.showAlert('Ссылка скопирована! Теперь вы можете поделиться ею.');
+      }).catch(() => {
+        tg.showAlert('Ссылка: ' + miniAppUrl);
+      });
     } else {
-      // Fallback - копирование в буфер
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(window.location.href).then(() => {
-          alert('Ссылка скопирована в буфер обмена!');
-        });
-      } else {
-        alert('Ссылка: ' + window.location.href);
-      }
+      tg.showAlert('Ссылка: ' + miniAppUrl);
+    }
+  } else {
+    // Если не в Telegram, копируем обычную ссылку
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        alert('Ссылка скопирована в буфер обмена!');
+      });
+    } else {
+      alert('Ссылка: ' + window.location.href);
     }
   }
 }

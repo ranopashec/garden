@@ -7,6 +7,20 @@
     tg.ready();
     tg.expand();
     
+    // Показываем кнопку "Назад" только если не на главной странице
+    const isHomePage = window.location.pathname === '/' || window.location.pathname === '/index.html';
+    
+    if (!isHomePage) {
+      tg.BackButton.show();
+      
+      // Обработка нажатия на кнопку "Назад"
+      tg.BackButton.onClick(() => {
+        window.location.href = '/';
+      });
+    } else {
+      tg.BackButton.hide();
+    }
+    
     // Защита от копирования через Telegram API
     tg.disableSelection();
     

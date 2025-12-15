@@ -1,18 +1,19 @@
 <!DOCTYPE html>
 <html lang="{{ meta.mainLanguage }}">
     <head>
-        <title>Nothing here</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Страница не найдена</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <meta charset="UTF-8">
-        <link href="/styles/digital-garden-base.css" rel="stylesheet">
-        <link href="/styles/style.css" rel="stylesheet">
-        <link href="/styles/custom-style.css" rel="stylesheet">
+        {%include "components/pageheader.njk"%}
     </head>
     <body class="theme-dark markdown-preview-view">
         <div class="content">
-            <h1>There is nothing here</h1>
-            <p>If you got here from a link, this note is probably not made public</p>
-            <a href="/">Go back home</a>
+            <div class="not-found-container">
+                <div class="not-found-icon">📝</div>
+                <h1>Уже скоро здесь будет контент</h1>
+                <p>Эта страница пока находится в разработке</p>
+                <a href="/" class="home-button">На главную</a>
+            </div>
         </div>
     </body>
 </html>
