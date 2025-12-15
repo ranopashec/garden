@@ -410,49 +410,6 @@ a {
     }
 }
 
-// Стили для кнопки поделиться (круглая с самолётиком)
-.share-button-container {
-    margin-top: 40px;
-    padding-top: 24px;
-    border-top: 1px solid var(--background-secondary);
-    display: flex;
-    justify-content: center;
-}
-
-.share-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 56px;
-    height: 56px;
-    padding: 0;
-    background-color: rgba(0, 176, 255, 0.1); // Цвет как у abstract callout
-    border: none;
-    border-radius: 50%; // Круглая кнопка
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: inherit;
-    box-shadow: 0 2px 8px rgba(0, 176, 255, 0.2);
-}
-
-.share-button:hover {
-    background-color: rgba(0, 176, 255, 0.2);
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 4px 12px rgba(0, 176, 255, 0.3);
-}
-
-.share-button:active {
-    transform: translateY(0) scale(1);
-    box-shadow: 0 2px 6px rgba(0, 176, 255, 0.2);
-}
-
-.share-icon {
-    width: 24px;
-    height: 24px;
-    color: rgb(0, 176, 255); // Цвет как у abstract callout
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
-}
-
 // Стили для страницы 404
 .not-found-container {
     display: flex;

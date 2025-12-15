@@ -7,16 +7,14 @@
     <div class="access-denied" style="display: none;">
       <div class="access-denied-icon">🔒</div>
       <h2>Доступ ограничен</h2>
-      <p>Эта статья доступна только участникам закрытого сообщества</p>
+      <p>Эта статья доступна только авторизованным пользователям</p>
     </div>
     <div class="article-content" style="display: none;">
       {{ content | hideDataview | link | safe }}
-      {%include "components/shareButton.njk"%}
     </div>
   </div>
 {% else %}
   {{ content | hideDataview | link | safe }}
-  {%include "components/shareButton.njk"%}
 {% endif %}
 
 <script>
@@ -43,20 +41,16 @@
       },
       body: JSON.stringify({ initData })
     })
-    .then(res => {
+    .then(async res => {
       if (!res.ok) {
-        throw new Error('Network response was not ok');
-      }
-      return res.json();
-    })
-    .then(res => {
-      if (!res.ok) {
-        // Если статус не OK, пробуем получить JSON с ошибкой
-        return res.json().then(data => {
-          throw new Error(data.error || `HTTP ${res.status}`);
-        }).catch(() => {
-          throw new Error(`HTTP ${res.status}`);
-        });
+        // Пробуем получить JSON с деталями ошибки
+        let errorData = null;
+        try {
+          errorData = await res.json();
+        } catch (e) {
+          // Если не удалось распарсить JSON, используем текст ошибки
+        }
+        throw new Error(errorData?.error || `HTTP ${res.status}`);
       }
       return res.json();
     })
