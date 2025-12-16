@@ -24,8 +24,11 @@ module.exports = {
     },
     access: (data) => {
       // Обрабатываем access из frontmatter
-      // По умолчанию "public", если не указано
-      return data.access || "public";
+      // Возвращаем значение из frontmatter или undefined (что означает "none")
+      // "public" - показывать всем
+      // "private" - показывать только разрешённым пользователям
+      // "none" или отсутствует - не показывать никому
+      return data.access;
     },
     // Сохраняем оригинальный permalink для внутреннего использования
     originalPermalink: (data) => {
