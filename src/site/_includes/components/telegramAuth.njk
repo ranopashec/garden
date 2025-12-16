@@ -47,6 +47,7 @@
     console.log('TelegramAuth: userInfo element:', userInfo);
     if (userInfo) {
       const usernameEl = userInfo.querySelector('.user-username');
+      const subscriptionDaysEl = document.getElementById('user-subscription-days');
       const user = tg.initDataUnsafe?.user;
       console.log('TelegramAuth: user from initDataUnsafe:', user);
       
@@ -61,8 +62,86 @@
           userInfo.style.display = 'flex';
           console.log('TelegramAuth: Username displayed');
         }
+        
+        // Проверяем подписку и показываем дни
+        checkSubscription(user.id, subscriptionDaysEl);
       } else {
         console.warn('TelegramAuth: User data not available in initDataUnsafe');
+      }
+    }
+    
+    // Функция проверки подписки
+    async function checkSubscription(telegramId, subscriptionDaysEl) {
+      try {
+        const response = await fetch('/api/check-access', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ telegramId: telegramId })
+        });
+        
+        if (!response.ok) {
+          console.error('TelegramAuth: Failed to check subscription', response.status);
+          return;
+        }
+        
+        const data = await response.json();
+        
+        if (data.expiresAt && subscriptionDaysEl) {
+          const expiresAt = new Date(data.expiresAt);
+          const now = new Date();
+          const diffTime = expiresAt - now;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (diffDays > 0 && data.hasAccess) {
+            // Подписка активна - показываем дни
+            subscriptionDaysEl.textContent = `${diffDays} дн.`;
+            subscriptionDaysEl.style.display = 'inline';
+            subscriptionDaysEl.style.marginLeft = '8px';
+            console.log('TelegramAuth: Subscription active, days left:', diffDays);
+            // Скрываем плашку подписки
+            updateSubscriptionBanner(false);
+          } else {
+            // Подписка истекла или нет доступа - скрываем дни
+            subscriptionDaysEl.style.display = 'none';
+            // Показываем плашку подписки
+            updateSubscriptionBanner(true);
+            console.log('TelegramAuth: Subscription expired or no access');
+          }
+        } else {
+          // Подписки нет - скрываем дни
+          if (subscriptionDaysEl) {
+            subscriptionDaysEl.style.display = 'none';
+          }
+          // Показываем плашку подписки
+          updateSubscriptionBanner(true);
+          console.log('TelegramAuth: No subscription');
+        }
+      } catch (error) {
+        console.error('TelegramAuth: Error checking subscription', error);
+      }
+    }
+    
+    // Функция обновления плашки подписки
+    function updateSubscriptionBanner(showBanner) {
+      let banner = document.getElementById('subscription-banner');
+      
+      if (showBanner) {
+        // Показываем плашку если подписки нет
+        if (!banner) {
+          banner = document.createElement('div');
+          banner.id = 'subscription-banner';
+          banner.className = 'subscription-banner';
+          banner.innerHTML = '<a href="https://t.me/lidevty_manager" target="_blank" style="text-decoration: none; color: inherit; display: block; width: 100%;">Полный доступ по подписке</a>';
+          document.body.appendChild(banner);
+        }
+        banner.style.display = 'block';
+      } else {
+        // Скрываем плашку если подписка есть
+        if (banner) {
+          banner.style.display = 'none';
+        }
       }
     }
     
