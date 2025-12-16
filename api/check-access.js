@@ -47,25 +47,45 @@ module.exports = async (req, res) => {
     const now = new Date().toISOString();
     
     // Сначала проверяем есть ли пользователь вообще (даже с истёкшей подпиской)
+    console.log('API: Checking access for telegramId:', telegramIdNum, 'type:', typeof telegramIdNum);
+    
     const { data: userData, error: userError } = await supabase
       .from('allowed_users')
       .select('telegram_id, expires_at')
       .eq('telegram_id', telegramIdNum)
       .maybeSingle();
 
+    console.log('API: Query result:', JSON.stringify({ userData, userError }));
+
     if (userError) {
       console.error('Supabase query error:', userError);
-      return res.status(500).json({ error: 'Database query error' });
+      return res.status(500).json({ error: 'Database query error', details: userError.message });
     }
 
     // Проверяем, действительна ли подписка
-    const hasAccess = userData && new Date(userData.expires_at) >= new Date(now);
+    const nowDate = new Date(now);
+    const expiresDate = userData ? new Date(userData.expires_at) : null;
+    const hasAccess = userData && expiresDate && expiresDate >= nowDate;
     const expiresAt = userData?.expires_at || null;
+
+    console.log('API: Access check result:', {
+      hasAccess,
+      expiresAt,
+      now: now,
+      expiresDate: expiresDate?.toISOString(),
+      comparison: expiresDate ? (expiresDate >= nowDate) : false
+    });
 
     return res.status(200).json({ 
       hasAccess,
       telegramId: telegramIdNum,
-      expiresAt
+      expiresAt,
+      debug: {
+        userDataFound: !!userData,
+        expiresAtRaw: expiresAt,
+        now: now,
+        expiresDate: expiresDate?.toISOString()
+      }
     });
 
   } catch (error) {
