@@ -32,15 +32,17 @@ module.exports = async (req, res) => {
 
     // Получаем переменные окружения
     const supabaseUrl = process.env.SUPABASE_URL;
-    // Пробуем сначала service_role key (обходит RLS), если нет - используем anon key
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    // Используем anon key (безопаснее) или service_role key как fallback
+    // Service role key обходит RLS, но должен использоваться только если RLS политика не работает
+    const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
       console.error('Supabase credentials not configured');
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    console.log('API: Using Supabase key type:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'service_role' : 'anon');
+    const usingServiceRole = !!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_ANON_KEY;
+    console.log('API: Using Supabase key type:', usingServiceRole ? 'service_role (⚠️ less secure)' : 'anon (✅ secure)');
 
     // Создаём клиент Supabase
     const supabase = createClient(supabaseUrl, supabaseKey);

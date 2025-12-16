@@ -30,11 +30,19 @@ CREATE INDEX IF NOT EXISTS idx_allowed_users_expires_at ON allowed_users(expires
 -- Включение Row Level Security (RLS)
 ALTER TABLE allowed_users ENABLE ROW LEVEL SECURITY;
 
--- Политика: разрешить чтение всем (так как мы используем anon key)
--- В продакшене рекомендуется использовать service_role key для более строгого контроля
+-- Политика: разрешить чтение всем анонимным пользователям (anon key)
+-- Важно: политика должна быть создана правильно, иначе запросы будут возвращать пустой массив
 CREATE POLICY "Allow public read access" ON allowed_users
   FOR SELECT
+  TO anon, authenticated
   USING (true);
+
+-- Альтернативный вариант: если политика не работает, попробуйте создать её так:
+-- DROP POLICY IF EXISTS "Allow public read access" ON allowed_users;
+-- CREATE POLICY "Allow public read access" ON allowed_users
+--   FOR SELECT
+--   USING (true)
+--   WITH CHECK (true);
 ```
 
 ## Шаг 3: Добавление пользователей
@@ -85,7 +93,10 @@ DO UPDATE SET expires_at = EXCLUDED.expires_at;
    - **anon/public key** (это ключ, который начинается с `eyJ...`)
    - **service_role key** (секретный ключ, который также начинается с `eyJ...`)
 
-**Важно:** Если RLS политики блокируют доступ, используйте `service_role` ключ вместо `anon` ключа. Service role key обходит RLS и имеет полный доступ к данным.
+**Важно:** 
+- **Рекомендуется использовать `anon` ключ** с правильными RLS политиками (безопаснее)
+- `service_role` ключ обходит RLS и имеет полный доступ - используйте только если RLS политика не работает
+- Service role key НЕ должен быть доступен клиенту (в нашем случае он хранится только в переменных окружения Vercel на сервере)
 
 ## Шаг 5: Настройка переменных окружения в Vercel
 
