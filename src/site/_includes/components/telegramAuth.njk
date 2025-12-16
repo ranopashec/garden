@@ -118,9 +118,6 @@
           console.log('TelegramAuth: Subscription data cached');
         }
         
-        // Отображаем отладочную информацию
-        displayDebugInfo(telegramId, data);
-        
         if (data.expiresAt && subscriptionDaysEl) {
           const expiresAt = new Date(data.expiresAt);
           const now = new Date();
@@ -154,35 +151,6 @@
       } catch (error) {
         console.error('TelegramAuth: Error checking subscription', error);
       }
-    }
-    
-    // Функция отображения отладочной информации
-    function displayDebugInfo(telegramId, data) {
-      let debugDiv = document.getElementById('debug-info');
-      if (!debugDiv) {
-        debugDiv = document.createElement('div');
-        debugDiv.id = 'debug-info';
-        debugDiv.style.cssText = 'position: fixed; top: 60px; right: 16px; z-index: 1000; background: rgba(0, 0, 0, 0.9); color: #fff; padding: 12px; border-radius: 8px; font-size: 11px; font-family: monospace; max-width: 350px; line-height: 1.4; overflow-y: auto; max-height: 400px;';
-        document.body.appendChild(debugDiv);
-      }
-      
-      const now = new Date();
-      const expiresDate = data.expiresAt ? new Date(data.expiresAt) : null;
-      const daysLeft = expiresDate ? Math.ceil((expiresDate - now) / (1000 * 60 * 60 * 24)) : null;
-      const isExpired = expiresDate ? expiresDate < now : null;
-      
-      debugDiv.innerHTML = `
-        <div style="font-weight: bold; margin-bottom: 8px; color: #4a9eff;">DEBUG INFO</div>
-        <div><strong>Telegram ID:</strong> ${telegramId} (${typeof telegramId})</div>
-        <div><strong>Has Access:</strong> <span style="color: ${data.hasAccess ? '#0f0' : '#f00'}">${data.hasAccess ? '✅ Yes' : '❌ No'}</span></div>
-        <div><strong>User Found:</strong> ${data.debug?.userDataFound !== undefined ? (data.debug.userDataFound ? '✅ Yes' : '❌ No') : 'N/A'}</div>
-        <div><strong>Expires At:</strong> ${data.expiresAt || 'N/A'}</div>
-        ${expiresDate ? `<div><strong>Expires Date:</strong> ${expiresDate.toISOString()}</div>` : ''}
-        ${expiresDate ? `<div><strong>Now:</strong> ${now.toISOString()}</div>` : ''}
-        ${daysLeft !== null ? `<div><strong>Days Left:</strong> <span style="color: ${daysLeft > 0 ? '#0f0' : '#f00'}">${daysLeft}</span></div>` : ''}
-        ${isExpired !== null ? `<div><strong>Is Expired:</strong> <span style="color: ${isExpired ? '#f00' : '#0f0'}">${isExpired ? 'Yes' : 'No'}</span></div>` : ''}
-        ${data.debug ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #333;"><strong>Raw Debug:</strong><pre style="font-size: 10px; overflow-x: auto;">${JSON.stringify(data.debug, null, 2)}</pre></div>` : ''}
-      `;
     }
     
     // Функция обновления плашки подписки
