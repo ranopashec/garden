@@ -3,9 +3,9 @@
   {{ content | hideDataview | link | safe }}
 {% elif access == "private" or private == true %}
   {# Приватная страница - проверяем доступ через Supabase #}
-  <div id="access-gate-container" class="access-gate" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center; padding: 2rem; width: 100%;">
+  <div id="access-gate-container" class="access-gate" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 2rem; width: 100%; box-sizing: border-box;">
     <div class="access-denied-icon" style="font-size: 4rem; margin-bottom: 1.5rem;">🔒</div>
-    <h2 style="margin-bottom: 1rem; font-size: 1.8rem;">Вам запрещён доступ к этой вкладке</h2>
+    <h2 style="margin-bottom: 1rem; font-size: 1.8rem; text-align: center;">Вам запрещён доступ к этой вкладке</h2>
     <a href="/" style="display: inline-block; margin-top: 1.5rem; padding: 0.75rem 2rem; background-color: var(--interactive-accent, #4a9eff); color: white; text-decoration: none; border-radius: 6px; font-weight: 500; transition: opacity 0.2s;">
       Вернуться на главную
     </a>
@@ -113,9 +113,9 @@
   </script>
 {% else %}
   {# access == "none" или отсутствует - не показываем никому #}
-  <div class="access-gate" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center; padding: 2rem; width: 100%;">
+  <div class="access-gate" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 2rem; width: 100%; box-sizing: border-box;">
     <div class="access-denied-icon" style="font-size: 4rem; margin-bottom: 1.5rem;">🔒</div>
-    <h2 style="margin-bottom: 1rem; font-size: 1.8rem;">Вам запрещён доступ к этой вкладке</h2>
+    <h2 style="margin-bottom: 1rem; font-size: 1.8rem; text-align: center;">Вам запрещён доступ к этой вкладке</h2>
     <a href="/" style="display: inline-block; margin-top: 1.5rem; padding: 0.75rem 2rem; background-color: var(--interactive-accent, #4a9eff); color: white; text-decoration: none; border-radius: 6px; font-weight: 500; transition: opacity 0.2s;">
       Вернуться на главную
     </a>
