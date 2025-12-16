@@ -18,7 +18,7 @@
     const accessGateContainer = document.getElementById('access-gate-container');
     const privateContent = document.getElementById('private-content');
     
-    // Проверяем доступ через Supabase
+    // Проверяем доступ через Supabase (используя кэш из localStorage)
     async function checkAccess() {
       try {
         // Получаем Telegram ID из Telegram WebApp
@@ -36,21 +36,49 @@
           return; // Оставляем блокировку
         }
         
-        // Отправляем запрос на API для проверки доступа
-        const response = await fetch('/api/check-access', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ telegramId: telegramId })
-        });
+        // Проверяем кэш в localStorage
+        const cacheKey = `subscription_${telegramId}`;
+        const cachedData = localStorage.getItem(cacheKey);
         
-        if (!response.ok) {
-          console.error('AccessGate: API request failed', response.status);
-          return; // Оставляем блокировку
+        let data;
+        if (cachedData) {
+          try {
+            const parsed = JSON.parse(cachedData);
+            const cacheTime = parsed.timestamp || 0;
+            const now = Date.now();
+            // Используем кэш если он не старше 5 минут
+            if (now - cacheTime < 5 * 60 * 1000) {
+              data = parsed.data;
+              console.log('AccessGate: Using cached subscription data');
+            }
+          } catch (e) {
+            console.warn('AccessGate: Failed to parse cache', e);
+          }
         }
         
-        const data = await response.json();
+        // Если кэша нет - делаем запрос (но это должно быть редко, так как telegramAuth уже загрузил данные)
+        if (!data) {
+          const response = await fetch('/api/check-access', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ telegramId: telegramId })
+          });
+          
+          if (!response.ok) {
+            console.error('AccessGate: API request failed', response.status);
+            return; // Оставляем блокировку
+          }
+          
+          data = await response.json();
+          
+          // Сохраняем в кэш
+          localStorage.setItem(cacheKey, JSON.stringify({
+            data: data,
+            timestamp: Date.now()
+          }));
+        }
         
         if (data.hasAccess) {
           // Доступ разрешён - показываем контент

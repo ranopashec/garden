@@ -70,23 +70,56 @@
       }
     }
     
-    // Функция проверки подписки
+    // Функция проверки подписки с кэшированием в localStorage
     async function checkSubscription(telegramId, subscriptionDaysEl) {
       try {
-        const response = await fetch('/api/check-access', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ telegramId: telegramId })
-        });
+        // Проверяем кэш в localStorage
+        const cacheKey = `subscription_${telegramId}`;
+        const cachedData = localStorage.getItem(cacheKey);
         
-        if (!response.ok) {
-          console.error('TelegramAuth: Failed to check subscription', response.status);
-          return;
+        let data;
+        if (cachedData) {
+          try {
+            const parsed = JSON.parse(cachedData);
+            const cacheTime = parsed.timestamp || 0;
+            const now = Date.now();
+            // Используем кэш если он не старше 5 минут
+            if (now - cacheTime < 5 * 60 * 1000) {
+              data = parsed.data;
+              console.log('TelegramAuth: Using cached subscription data');
+            }
+          } catch (e) {
+            console.warn('TelegramAuth: Failed to parse cache', e);
+          }
         }
         
-        const data = await response.json();
+        // Если кэша нет или он устарел - делаем запрос
+        if (!data) {
+          const response = await fetch('/api/check-access', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ telegramId: telegramId })
+          });
+          
+          if (!response.ok) {
+            console.error('TelegramAuth: Failed to check subscription', response.status);
+            return;
+          }
+          
+          data = await response.json();
+          
+          // Сохраняем в кэш
+          localStorage.setItem(cacheKey, JSON.stringify({
+            data: data,
+            timestamp: Date.now()
+          }));
+          console.log('TelegramAuth: Subscription data cached');
+        }
+        
+        // Отображаем отладочную информацию
+        displayDebugInfo(telegramId, data);
         
         if (data.expiresAt && subscriptionDaysEl) {
           const expiresAt = new Date(data.expiresAt);
@@ -121,6 +154,25 @@
       } catch (error) {
         console.error('TelegramAuth: Error checking subscription', error);
       }
+    }
+    
+    // Функция отображения отладочной информации
+    function displayDebugInfo(telegramId, data) {
+      let debugDiv = document.getElementById('debug-info');
+      if (!debugDiv) {
+        debugDiv = document.createElement('div');
+        debugDiv.id = 'debug-info';
+        debugDiv.style.cssText = 'position: fixed; top: 60px; right: 16px; z-index: 1000; background: rgba(0, 0, 0, 0.9); color: #fff; padding: 12px; border-radius: 8px; font-size: 12px; font-family: monospace; max-width: 300px; line-height: 1.4;';
+        document.body.appendChild(debugDiv);
+      }
+      
+      debugDiv.innerHTML = `
+        <div style="font-weight: bold; margin-bottom: 8px; color: #4a9eff;">DEBUG INFO</div>
+        <div><strong>Telegram ID:</strong> ${telegramId}</div>
+        <div><strong>Has Access:</strong> ${data.hasAccess ? '✅ Yes' : '❌ No'}</div>
+        <div><strong>Expires At:</strong> ${data.expiresAt || 'N/A'}</div>
+        ${data.expiresAt ? `<div><strong>Days Left:</strong> ${Math.ceil((new Date(data.expiresAt) - new Date()) / (1000 * 60 * 60 * 24))}</div>` : ''}
+      `;
     }
     
     // Функция обновления плашки подписки
