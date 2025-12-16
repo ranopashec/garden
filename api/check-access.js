@@ -49,13 +49,31 @@ module.exports = async (req, res) => {
     // Сначала проверяем есть ли пользователь вообще (даже с истёкшей подпиской)
     console.log('API: Checking access for telegramId:', telegramIdNum, 'type:', typeof telegramIdNum);
     
-    const { data: userData, error: userError } = await supabase
+    // Пробуем запрос как с числом, так и со строкой (на случай если в БД хранится строка)
+    let { data: userData, error: userError } = await supabase
       .from('allowed_users')
       .select('telegram_id, expires_at')
       .eq('telegram_id', telegramIdNum)
       .maybeSingle();
 
-    console.log('API: Query result:', JSON.stringify({ userData, userError }));
+    console.log('API: Query result (as number):', JSON.stringify({ userData, userError }));
+
+    // Если не нашли, пробуем как строку
+    if (!userData && !userError) {
+      console.log('API: Trying as string:', String(telegramIdNum));
+      const { data: userDataStr, error: userErrorStr } = await supabase
+        .from('allowed_users')
+        .select('telegram_id, expires_at')
+        .eq('telegram_id', String(telegramIdNum))
+        .maybeSingle();
+      
+      if (userDataStr) {
+        userData = userDataStr;
+        console.log('API: Found as string:', JSON.stringify(userData));
+      } else {
+        console.log('API: Not found as string either');
+      }
+    }
 
     if (userError) {
       console.error('Supabase query error:', userError);
@@ -65,26 +83,32 @@ module.exports = async (req, res) => {
     // Проверяем, действительна ли подписка
     const nowDate = new Date(now);
     const expiresDate = userData ? new Date(userData.expires_at) : null;
-    const hasAccess = userData && expiresDate && expiresDate >= nowDate;
+    const hasAccess = userData ? (expiresDate && expiresDate >= nowDate) : false;
     const expiresAt = userData?.expires_at || null;
 
     console.log('API: Access check result:', {
-      hasAccess,
-      expiresAt,
+      hasAccess: hasAccess,
+      expiresAt: expiresAt,
       now: now,
       expiresDate: expiresDate?.toISOString(),
-      comparison: expiresDate ? (expiresDate >= nowDate) : false
+      comparison: expiresDate ? (expiresDate >= nowDate) : false,
+      userDataFound: !!userData,
+      userDataTelegramId: userData?.telegram_id,
+      userDataTelegramIdType: userData?.telegram_id ? typeof userData.telegram_id : 'N/A'
     });
 
     return res.status(200).json({ 
-      hasAccess,
+      hasAccess: hasAccess || false, // Всегда возвращаем boolean
       telegramId: telegramIdNum,
       expiresAt,
       debug: {
         userDataFound: !!userData,
         expiresAtRaw: expiresAt,
         now: now,
-        expiresDate: expiresDate?.toISOString()
+        expiresDate: expiresDate?.toISOString(),
+        userDataTelegramId: userData?.telegram_id,
+        userDataTelegramIdType: userData?.telegram_id ? typeof userData.telegram_id : 'N/A',
+        searchedAs: typeof telegramIdNum
       }
     });
 
