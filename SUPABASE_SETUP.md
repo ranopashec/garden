@@ -83,6 +83,9 @@ DO UPDATE SET expires_at = EXCLUDED.expires_at;
 2. Найдите следующие значения:
    - **Project URL** (например: `https://xxxxx.supabase.co`)
    - **anon/public key** (это ключ, который начинается с `eyJ...`)
+   - **service_role key** (секретный ключ, который также начинается с `eyJ...`)
+
+**Важно:** Если RLS политики блокируют доступ, используйте `service_role` ключ вместо `anon` ключа. Service role key обходит RLS и имеет полный доступ к данным.
 
 ## Шаг 5: Настройка переменных окружения в Vercel
 
@@ -93,7 +96,10 @@ DO UPDATE SET expires_at = EXCLUDED.expires_at;
 ```
 SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...  # Опционально, но рекомендуется для обхода RLS
 ```
+
+**Примечание:** Если вы используете `SUPABASE_SERVICE_ROLE_KEY`, API будет использовать его вместо `SUPABASE_ANON_KEY`. Service role key обходит RLS политики и имеет полный доступ к данным.
 
 4. Убедитесь, что переменные добавлены для всех окружений (Production, Preview, Development)
 5. После добавления переменных **передеплойте проект**

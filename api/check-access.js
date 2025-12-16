@@ -32,12 +32,15 @@ module.exports = async (req, res) => {
 
     // Получаем переменные окружения
     const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    // Пробуем сначала service_role key (обходит RLS), если нет - используем anon key
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
       console.error('Supabase credentials not configured');
       return res.status(500).json({ error: 'Server configuration error' });
     }
+
+    console.log('API: Using Supabase key type:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'service_role' : 'anon');
 
     // Создаём клиент Supabase
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -98,14 +101,22 @@ module.exports = async (req, res) => {
       console.log('API: Trying to get all records for debugging...');
       let { data: allData, error: allError } = await supabase
         .from('allowed_users')
-        .select('telegram_id, expires_at')
+        .select('*')
         .limit(5);
       
       console.log('API: All records sample:', { 
         count: allData?.length, 
         sample: allData,
-        error: allError 
+        error: allError,
+        errorDetails: allError ? JSON.stringify(allError) : null
       });
+      
+      // Если RLS блокирует, попробуем проверить политики
+      if (allError) {
+        console.log('API: RLS Error detected:', allError.message);
+        console.log('API: Error code:', allError.code);
+        console.log('API: Error details:', allError.details);
+      }
     }
 
     if (userError) {
