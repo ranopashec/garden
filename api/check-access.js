@@ -49,30 +49,63 @@ module.exports = async (req, res) => {
     // Сначала проверяем есть ли пользователь вообще (даже с истёкшей подпиской)
     console.log('API: Checking access for telegramId:', telegramIdNum, 'type:', typeof telegramIdNum);
     
-    // Пробуем запрос как с числом, так и со строкой (на случай если в БД хранится строка)
-    let { data: userData, error: userError } = await supabase
+    // Пробуем разные варианты запроса
+    let userData = null;
+    let userError = null;
+    
+    // Вариант 1: как число
+    console.log('API: Trying query as number:', telegramIdNum);
+    let { data: data1, error: error1 } = await supabase
       .from('allowed_users')
       .select('telegram_id, expires_at')
-      .eq('telegram_id', telegramIdNum)
-      .maybeSingle();
-
-    console.log('API: Query result (as number):', JSON.stringify({ userData, userError }));
-
-    // Если не нашли, пробуем как строку
-    if (!userData && !userError) {
-      console.log('API: Trying as string:', String(telegramIdNum));
-      const { data: userDataStr, error: userErrorStr } = await supabase
+      .eq('telegram_id', telegramIdNum);
+    
+    console.log('API: Query as number result:', { 
+      dataLength: data1?.length, 
+      data: data1, 
+      error: error1 
+    });
+    
+    if (data1 && data1.length > 0) {
+      userData = data1[0];
+      console.log('API: Found as number:', userData);
+    } else if (!error1) {
+      // Вариант 2: как строка
+      console.log('API: Trying query as string:', String(telegramIdNum));
+      let { data: data2, error: error2 } = await supabase
         .from('allowed_users')
         .select('telegram_id, expires_at')
-        .eq('telegram_id', String(telegramIdNum))
-        .maybeSingle();
+        .eq('telegram_id', String(telegramIdNum));
       
-      if (userDataStr) {
-        userData = userDataStr;
-        console.log('API: Found as string:', JSON.stringify(userData));
+      console.log('API: Query as string result:', { 
+        dataLength: data2?.length, 
+        data: data2, 
+        error: error2 
+      });
+      
+      if (data2 && data2.length > 0) {
+        userData = data2[0];
+        console.log('API: Found as string:', userData);
       } else {
-        console.log('API: Not found as string either');
+        userError = error2;
       }
+    } else {
+      userError = error1;
+    }
+    
+    // Вариант 3: попробуем получить все записи для отладки (только первые 5)
+    if (!userData && !userError) {
+      console.log('API: Trying to get all records for debugging...');
+      let { data: allData, error: allError } = await supabase
+        .from('allowed_users')
+        .select('telegram_id, expires_at')
+        .limit(5);
+      
+      console.log('API: All records sample:', { 
+        count: allData?.length, 
+        sample: allData,
+        error: allError 
+      });
     }
 
     if (userError) {
