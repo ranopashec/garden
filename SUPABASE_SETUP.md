@@ -107,10 +107,16 @@ DO UPDATE SET expires_at = EXCLUDED.expires_at;
 ```
 SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...  # Опционально, но рекомендуется для обхода RLS
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...  # Рекомендуется если RLS не работает
 ```
 
-**Примечание:** Если вы используете `SUPABASE_SERVICE_ROLE_KEY`, API будет использовать его вместо `SUPABASE_ANON_KEY`. Service role key обходит RLS политики и имеет полный доступ к данным.
+**Важно о безопасности:**
+- `SUPABASE_SERVICE_ROLE_KEY` используется **ТОЛЬКО на сервере** (Vercel serverless function)
+- Ключ хранится в переменных окружения Vercel и **НЕ доступен клиенту**
+- Клиент только отправляет запросы на API, но не видит ключ
+- Это безопасно, так как весь код API выполняется на сервере Vercel
+
+**Примечание:** Если RLS политика не работает с `anon` ключом, API автоматически использует `service_role` ключ (если он настроен). Service role key обходит RLS политики.
 
 4. Убедитесь, что переменные добавлены для всех окружений (Production, Preview, Development)
 5. После добавления переменных **передеплойте проект**
