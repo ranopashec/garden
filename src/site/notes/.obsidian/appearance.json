@@ -1,5 +1,7 @@
 {
+  "accentColor": "#ff4747",
+  "cssTheme": "Cupertino",
+  "translucency": false,
   "showViewHeader": false,
-  "showRibbon": false,
-  "accentColor": "#ffffff"
+  "showRibbon": false
 }
