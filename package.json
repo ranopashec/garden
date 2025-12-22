@@ -28,7 +28,7 @@
         "@sindresorhus/slugify": "^1.1.0",
         "@supabase/supabase-js": "^2.87.3",
         "dotenv": "^16.0.3",
-        "glob": "^10.2.1",
+        "glob": "^13.0.0",
         "gray-matter": "^4.0.3",
         "markdown-it": "^14.1.0",
         "markdown-it-anchor": "^9.0.1",
