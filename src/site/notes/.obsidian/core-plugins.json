@@ -4,7 +4,7 @@
   "switcher": false,
   "graph": true,
   "backlink": false,
-  "canvas": true,
+  "canvas": false,
   "outgoing-link": false,
   "tag-pane": true,
   "footnotes": false,
